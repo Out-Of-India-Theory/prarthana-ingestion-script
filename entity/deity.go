@@ -2,7 +2,7 @@ package entity
 
 type DeityDocument struct {
 	TmpId          string
-	Id             string            `bson:"_id,omitempty" json:"_id"`
+	Id             string            `bson:"_id" json:"_id"`
 	Order          int               `json:"order" bson:"order"`
 	Title          map[string]string `json:"title" bson:"title"`
 	Slug           string            `json:"slug" bson:"slug"`
@@ -10,7 +10,7 @@ type DeityDocument struct {
 	SearchKeywords []string          `json:"search_keywords" bson:"search_keywords"`
 	Description    map[string]string `json:"description" bson:"description"`
 	UIInfo         DeityUIInfo       `json:"ui_info" bson:"ui_info"`
-	Prarthanas     []string          `json:"prarthanas"`
+	Prarthanas     []string          `bson:"prarthanas"`
 }
 
 type DeityUIInfo struct {

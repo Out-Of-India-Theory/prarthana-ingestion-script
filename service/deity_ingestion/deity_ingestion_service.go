@@ -31,9 +31,16 @@ func InitDeityIngestionService(ctx context.Context,
 	}
 }
 
-func (s *DeityIngestionService) DeityIngestion(ctx context.Context, prarthanaToDeityCsvFilePath string, deityCsvFilePath string, stotraCsvFilePath string, adhyayaCsvFilePath string, variantCsvFilePath string, PrarthanaCsvFilePath string, startID, endID int) (map[string]string, error) {
+func (s *DeityIngestionService) DeityIngestion(ctx context.Context, prarthanaToDeityCsvFilePath string, deityCsvFilePath string, startID, endID int) (map[string]string, error) {
+	var err error
 	_, deityToPrarthanaMap := preparePrarthanaToDeityMap(prarthanaToDeityCsvFilePath)
-	prarthanaIdMap, _ := s.PrarthanaIngestion(ctx, prarthanaToDeityCsvFilePath, deityCsvFilePath, stotraCsvFilePath, adhyayaCsvFilePath, variantCsvFilePath, PrarthanaCsvFilePath, startID, endID)
+	if err != nil {
+		log.Fatalf("Error generating TmpId to ID map: %v", err)
+	}
+	prarthanaIdMap, _ := s.prarthanaMongoRepository.GeneratePrarthanaTmpIdToIdMap(ctx)
+	if err != nil {
+		log.Fatalf("Error generating TmpId to ID map: %v", err)
+	}
 	file, err := os.Open(deityCsvFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("error opening file: %w", err)
@@ -102,6 +109,14 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, prarthanaToD
 		if val, found := tmpIdToDeityIdMap[tmpId]; found {
 			deityUuid = val
 		}
+		defaultImage := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/list-image/%s.png", record[fieldMap["Deity Image"]])
+		if !util.UrlExists(defaultImage) {
+			return nil, fmt.Errorf("audio URL does not exist: %s", defaultImage)
+		}
+		backgroundImage := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/bg-image/%s.png", record[fieldMap["Deity Image"]])
+		if !util.UrlExists(backgroundImage) {
+			return nil, fmt.Errorf("audio URL does not exist: %s", backgroundImage)
+		}
 		deity := entity.DeityDocument{
 			TmpId: tmpId,
 			Id:    deityUuid,
@@ -114,8 +129,9 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, prarthanaToD
 				"default": record[fieldMap["Description"]],
 			},
 			UIInfo: entity.DeityUIInfo{
-				DefaultImage:    fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/list-image/%s.png", strings.ToLower(strings.ReplaceAll(deityName, " ", "_"))),
-				BackgroundImage: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/bg-image/%s.png", strings.ToLower(strings.ReplaceAll(deityName, " ", "_")))},
+				DefaultImage:    defaultImage,
+				BackgroundImage: backgroundImage,
+			},
 		}
 		deityIdMap[record[fieldMap["ID"]]] = deity.Id
 		deities = append(deities, deity)
@@ -128,7 +144,7 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, prarthanaToD
 		}
 		deities[i].Prarthanas = prarthanaIds
 	}
-	return deityIdMap, err
+	return deityIdMap, s.prarthanaMongoRepository.InsertManyDeities(ctx, deities)
 }
 
 func preparePrarthanaToDeityMap(csvFilePath string) (map[string]string, map[string][]string) {

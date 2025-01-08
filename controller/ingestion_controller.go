@@ -87,8 +87,6 @@ func (con *Controller) StotraIngestion(c *gin.Context) {
 func (con *Controller) PrarthanaIngestion(c *gin.Context) {
 	ctx := c.Request.Context()
 	var requestBody struct {
-		StotraCsvFilePath           string `json:"stotra_csv_file_path"`
-		DeityCsvFilePath            string `json:"deity_csv_file_path"`
 		AdhyayaCsvFilePath          string `json:"adhyaya_csv_file_path"`
 		VariantCsvFilePath          string `json:"variant_csv_file_path"`
 		PrarthanaCsvFilePath        string `json:"prarthana_csv_file_path"`
@@ -104,7 +102,7 @@ func (con *Controller) PrarthanaIngestion(c *gin.Context) {
 		})
 		return
 	}
-	_, err := con.service.PrarthanaIngestionService().PrarthanaIngestion(ctx, requestBody.PrarthanaToDeityCsvFilePath, requestBody.DeityCsvFilePath, requestBody.StotraCsvFilePath, requestBody.AdhyayaCsvFilePath, requestBody.VariantCsvFilePath, requestBody.PrarthanaCsvFilePath, requestBody.StartID, requestBody.EndID)
+	_, err := con.service.PrarthanaIngestionService().PrarthanaIngestion(ctx, requestBody.PrarthanaToDeityCsvFilePath, requestBody.AdhyayaCsvFilePath, requestBody.VariantCsvFilePath, requestBody.PrarthanaCsvFilePath, requestBody.StartID, requestBody.EndID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  http.StatusInternalServerError,
@@ -122,11 +120,7 @@ func (con *Controller) PrarthanaIngestion(c *gin.Context) {
 func (con *Controller) DeityIngestion(c *gin.Context) {
 	ctx := c.Request.Context()
 	var requestBody struct {
-		StotraCsvFilePath           string `json:"stotra_csv_file_path"`
 		DeityCsvFilePath            string `json:"deity_csv_file_path"`
-		AdhyayaCsvFilePath          string `json:"adhyaya_csv_file_path"`
-		VariantCsvFilePath          string `json:"variant_csv_file_path"`
-		PrarthanaCsvFilePath        string `json:"prarthana_csv_file_path"`
 		PrarthanaToDeityCsvFilePath string `json:"prarthana_to_deity_csv_file_path"`
 		StartID                     int    `json:"start_id"`
 		EndID                       int    `json:"end_id"`
@@ -139,7 +133,7 @@ func (con *Controller) DeityIngestion(c *gin.Context) {
 		})
 		return
 	}
-	_, err := con.service.DeityIngestionService().DeityIngestion(ctx, requestBody.PrarthanaToDeityCsvFilePath, requestBody.DeityCsvFilePath, requestBody.StotraCsvFilePath, requestBody.AdhyayaCsvFilePath, requestBody.VariantCsvFilePath, requestBody.PrarthanaCsvFilePath, requestBody.StartID, requestBody.EndID)
+	_, err := con.service.DeityIngestionService().DeityIngestion(ctx, requestBody.PrarthanaToDeityCsvFilePath, requestBody.DeityCsvFilePath, requestBody.StartID, requestBody.EndID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  http.StatusInternalServerError,

@@ -206,3 +206,59 @@ func (r *PrarthanaDataMongoRepository) GetAllDeities(ctx context.Context) ([]ent
 
 	return deities, nil
 }
+
+func (r *PrarthanaDataMongoRepository) GeneratePrarthanaTmpIdToIdMap(ctx context.Context) (map[string]string, error) {
+	// Define the map to store the TmpId -> _id mapping
+	tmpIdToIdMap := make(map[string]string)
+	projection := bson.M{
+		"_id":   1,
+		"TmpId": 1,
+	}
+	cursor, err := r.prarthanaCollection.Find(ctx, bson.M{}, options.Find().SetProjection(projection))
+	if err != nil {
+		return nil, fmt.Errorf("error fetching documents: %w", err)
+	}
+	defer cursor.Close(ctx)
+	for cursor.Next(ctx) {
+		var document struct {
+			ID    string `bson:"_id"`
+			TmpId string `bson:"TmpId"`
+		}
+
+		if err := cursor.Decode(&document); err != nil {
+			return nil, fmt.Errorf("error decoding document: %w", err)
+		}
+		if document.TmpId != "" {
+			tmpIdToIdMap[document.TmpId] = document.ID
+		}
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+
+	return tmpIdToIdMap, nil
+}
+
+func (r *PrarthanaDataMongoRepository) GenerateDeityTmpIdToIdMap(ctx context.Context) (map[string]string, error) {
+	// Map to store TmpId to _id mapping
+	tmpIdToIdMap := make(map[string]string)
+	cursor, err := r.deityCollection.Find(ctx, bson.M{}, options.Find().SetProjection(bson.M{"_id": 1, "TmpId": 1}))
+	if err != nil {
+		return nil, fmt.Errorf("error fetching documents from MongoDB: %w", err)
+	}
+	defer cursor.Close(ctx)
+	for cursor.Next(ctx) {
+		var document struct {
+			ID    string `bson:"_id"`
+			TmpId string `bson:"TmpId"`
+		}
+		if err := cursor.Decode(&document); err != nil {
+			return nil, fmt.Errorf("error decoding document: %w", err)
+		}
+		tmpIdToIdMap[document.TmpId] = document.ID
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over cursor: %w", err)
+	}
+	return tmpIdToIdMap, nil
+}
