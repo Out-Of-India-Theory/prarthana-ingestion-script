@@ -7,6 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-audio/wav v1.1.0
 	github.com/google/uuid v1.6.0
+	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/newrelic/go-agent/v3 v3.35.1
 	github.com/spf13/viper v1.19.0
 	go.mongodb.org/mongo-driver v1.17.2

@@ -29,55 +29,43 @@ func InitShlokIngestionService(ctx context.Context,
 }
 
 func (s *ShlokIngestionService) ShlokIngestion(ctx context.Context, csvFilePath string, startID, endID int) error {
-	// Open the provided CSV file
 	file, err := os.Open(csvFilePath)
 	if err != nil {
 		return fmt.Errorf("error opening file: %w", err)
 	}
 	defer file.Close()
 
-	// Create a CSV reader
 	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1 // Allow variable number of fields per record
+	reader.FieldsPerRecord = -1
 
-	// Read the CSV header
 	header, err := reader.Read()
 	if err != nil {
 		return fmt.Errorf("error reading header: %w", err)
 	}
 
-	// Map CSV header to field indices in the Shlok struct
 	fieldMap := make(map[string]int)
 	for i, field := range header {
 		fieldMap[field] = i
 	}
 
-	// Create a slice to store Shlok objects
 	var shloks []entity.Shlok
 
-	// Read remaining records from the CSV file
 	records, err := reader.ReadAll()
 	if err != nil {
 		return fmt.Errorf("error reading records: %w", err)
 	}
-
-	// Iterate over each record in the CSV file
 	for i, record := range records {
 		log.Printf("Processing record %d\n", i+1) // Log the current record number
 
-		// Defensive check to avoid index out of range errors
 		if len(record) <= fieldMap["ID"] {
 			log.Printf("Skipping record %d: Missing ID field\n", i+1)
 			continue
 		}
-		// Convert the ID from string to an integer
 		id, err := strconv.Atoi(record[fieldMap["ID"]])
 		if err != nil {
 			log.Printf("Skipping record %d: Invalid ID format\n", i+1)
 			continue
 		}
-
-		// Check if the ID is within the specified range
 		if id < startID || id > endID {
 			continue
 		}
@@ -96,11 +84,8 @@ func (s *ShlokIngestionService) ShlokIngestion(ctx context.Context, csvFilePath 
 			Shlok:       make(map[string]string),
 		}
 
-		// Extract language keys for Explanation and Shlok
 		explanationKeys := util.ExtractLanguageKeys(fieldMap, "translation_")
 		shlokKeys := util.ExtractLanguageKeys(fieldMap, "text_")
-
-		// Fill in the Explanation map
 		for lang, index := range explanationKeys {
 			if index < len(record) && record[index] != "" {
 				if lang == "english" {
@@ -112,8 +97,6 @@ func (s *ShlokIngestionService) ShlokIngestion(ctx context.Context, csvFilePath 
 				log.Printf("Warning: Missing translation for language '%s' in record %d\n", lang, i+1)
 			}
 		}
-
-		// Fill in the Shlok map
 		for lang, index := range shlokKeys {
 			if index < len(record) && record[index] != "" {
 				if lang == "sanskrit" {
