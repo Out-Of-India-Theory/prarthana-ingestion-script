@@ -32,13 +32,16 @@ func InitPrathanaIngestionService(ctx context.Context,
 	}
 }
 
-func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, prarthanaToDeityCsvFilePath string, deityCsvFilePath string, stotraCsvFilePath string, adhyayaCsvFilePath string, variantCsvFilePath string, PrarthanaCsvFilePath string, startID, endID int) (map[string]string, error) {
-	deityIdMap, err := s.DeityIngestion(ctx, startID, endID)
+func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, prarthanaToDeityCsvFilePath string, adhyayaCsvFilePath string, variantCsvFilePath string, PrarthanaCsvFilePath string, startID, endID int) (map[string]string, error) {
+	deityIdMap, err := s.prarthanaMongoRepository.GenerateDeityTmpIdToIdMap(ctx)
 	if err != nil {
 		return nil, err
 	}
 	prarthanaToDeityMap, _ := PreparePrarthanaToDeityMap(prarthanaToDeityCsvFilePath)
 	stotraMap, err := s.prarthanaMongoRepository.GetAllStotras(ctx)
+	if err != nil {
+		return nil, err
+	}
 	chapterMap, err := prepareChapterMap(adhyayaCsvFilePath, stotraMap)
 	if err != nil {
 		log.Fatalf("Failed to prepare chapter map: %v", err)
@@ -117,12 +120,19 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, prar
 		}
 		fmt.Sprintf("%s", templateNumber)
 		audioURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.wav", strings.ToLower(strings.ReplaceAll(name, " ", "_")))
-		albumArtURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", record[fieldMap["Album Art"]])
 		if !util.UrlExists(audioURL) {
 			return nil, fmt.Errorf("audio URL does not exist: %s", audioURL)
 		}
+		albumArtURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", record[fieldMap["Album Art"]])
 		if !util.UrlExists(albumArtURL) {
 			return nil, fmt.Errorf("album art URL does not exist: %s", albumArtURL)
+		}
+
+		studioRecorded := false
+		if record[fieldMap["Studio Recorded Audio Available or not?"]] == "yes" {
+			studioRecorded = true
+		} else {
+			studioRecorded = false
 		}
 		prarthana := entity.Prarthana{
 			TmpId: tmpId,
@@ -132,7 +142,8 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, prar
 			},
 			Days: util.GetDaysFromTitle(name),
 			AudioInfo: entity.AudioInfo{AudioUrl: audioURL,
-				IsAudioAvailable: true},
+				IsAudioAvailable: true,
+				IsStudioRecorded: studioRecorded},
 			Variants:      []entity.Variant{variantMap[record[fieldMap["Prarthana Variant ID (Comma separated - Ordered)"]]]},
 			Description:   map[string]string{"default": record[fieldMap["Short description"]]},
 			Importance:    map[string]string{},

@@ -1,0 +1,18 @@
+{
+  "ServerConfig": {
+    "Port": "8080",
+    "Env": "DEV",
+    "PrometheusPort": "8085",
+    "PrometheusEnabled": false,
+    "NewRelicEnabled": true,
+    "AppName": "prarthana-automated-script",
+    "NewRelicLicense": "XXX"
+  },
+  "MongoConfig": {
+    "MongoConfig": {
+      "URI": "config_uri",
+      "Timeout": "5s"
+    },
+    "Database": "prarthana-service"
+  }
+}
