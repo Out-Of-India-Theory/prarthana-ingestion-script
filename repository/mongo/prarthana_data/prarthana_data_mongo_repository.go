@@ -41,7 +41,6 @@ func InitPrarthanaDataMongoRepository(ctx context.Context, mongoConfig configura
 }
 
 func (r *PrarthanaDataMongoRepository) InsertManyShloks(ctx context.Context, shloks []entity.Shlok) error {
-	// Prepare the documents for insertion
 	var documents []interface{}
 	for _, shlok := range shloks {
 		documents = append(documents, shlok)
@@ -57,7 +56,6 @@ func (r *PrarthanaDataMongoRepository) InsertManyShloks(ctx context.Context, shl
 }
 
 func (r *PrarthanaDataMongoRepository) InsertManyStotras(ctx context.Context, stotras []entity.Stotra) error {
-	// Prepare the documents for insertion
 	var documents []interface{}
 	for _, stotra := range stotras {
 		documents = append(documents, stotra)
@@ -73,7 +71,6 @@ func (r *PrarthanaDataMongoRepository) InsertManyStotras(ctx context.Context, st
 }
 
 func (r *PrarthanaDataMongoRepository) InsertManyDeities(ctx context.Context, deities []entity.DeityDocument) error {
-	// Prepare the documents for insertion
 	var documents []interface{}
 	for _, deity := range deities {
 		documents = append(documents, deity)
@@ -89,7 +86,6 @@ func (r *PrarthanaDataMongoRepository) InsertManyDeities(ctx context.Context, de
 }
 
 func (r *PrarthanaDataMongoRepository) InsertManyPrarthanas(ctx context.Context, prarthanas []entity.Prarthana) error {
-	// Prepare the documents for insertion
 	var documents []interface{}
 	for _, prarthana := range prarthanas {
 		documents = append(documents, prarthana)
@@ -105,26 +101,21 @@ func (r *PrarthanaDataMongoRepository) InsertManyPrarthanas(ctx context.Context,
 }
 
 func (r *PrarthanaDataMongoRepository) GetTmpIdToPrarthanaIds(ctx context.Context) (map[string]string, map[string]string, error) {
-	// Define the filter and projection for the MongoDB query
 	filter := bson.M{}
 	projection := bson.M{
 		"_id":                     1,
 		"TmpId":                   1,
 		"ui_info.template_number": 1,
 	}
-
-	// Query the collection
 	cursor, err := r.prarthanaCollection.Find(ctx, filter, options.Find().SetProjection(projection))
 	if err != nil {
 		return nil, nil, fmt.Errorf("error querying the collection: %w", err)
 	}
 	defer cursor.Close(ctx)
 
-	// Initialize maps to hold the data
 	idTemplateMap := make(map[string]string)
 	tmpIdToIdMap := make(map[string]string)
 
-	// Iterate through the cursor and decode the documents
 	for cursor.Next(ctx) {
 		var result struct {
 			ID     string `bson:"_id"`
@@ -133,28 +124,20 @@ func (r *PrarthanaDataMongoRepository) GetTmpIdToPrarthanaIds(ctx context.Contex
 				TemplateNumber string `bson:"template_number"`
 			} `bson:"ui_info"`
 		}
-
-		// Decode the current document into the result struct
 		if err := cursor.Decode(&result); err != nil {
 			return nil, nil, fmt.Errorf("error decoding document: %w", err)
 		}
-
-		// Populate the maps
 		idTemplateMap[result.TmpId] = result.UiInfo.TemplateNumber
 		tmpIdToIdMap[result.TmpId] = result.ID
 	}
 
-	// Check for any errors during cursor iteration
 	if err := cursor.Err(); err != nil {
 		return nil, nil, fmt.Errorf("cursor iteration error: %w", err)
 	}
-
-	// Return the populated maps
 	return idTemplateMap, tmpIdToIdMap, nil
 }
 
 func (r *PrarthanaDataMongoRepository) GetTmpIdToDeityIdMap(ctx context.Context) (map[string]string, error) {
-	// Define the filter and projection for the MongoDB query
 	filter := bson.M{}
 	projection := bson.M{
 		"_id":                     1,
@@ -162,17 +145,13 @@ func (r *PrarthanaDataMongoRepository) GetTmpIdToDeityIdMap(ctx context.Context)
 		"ui_info.template_number": 1,
 	}
 
-	// Query the collection
 	cursor, err := r.deityCollection.Find(ctx, filter, options.Find().SetProjection(projection))
 	if err != nil {
 		return nil, fmt.Errorf("error querying the collection: %w", err)
 	}
 	defer cursor.Close(ctx)
 
-	// Initialize the map to hold the data
 	tmpIdToDeityIdMap := make(map[string]string)
-
-	// Iterate through the cursor and decode the documents
 	for cursor.Next(ctx) {
 		var result struct {
 			ID     string `bson:"_id"`
@@ -182,21 +161,14 @@ func (r *PrarthanaDataMongoRepository) GetTmpIdToDeityIdMap(ctx context.Context)
 			} `bson:"ui_info"`
 		}
 
-		// Decode the current document into the result struct
 		if err := cursor.Decode(&result); err != nil {
 			return nil, fmt.Errorf("error decoding document: %w", err)
 		}
-
-		// Populate the map
 		tmpIdToDeityIdMap[result.TmpId] = result.ID
 	}
-
-	// Check for any errors during cursor iteration
 	if err := cursor.Err(); err != nil {
 		return nil, fmt.Errorf("cursor iteration error: %w", err)
 	}
-
-	// Return the populated map
 	return tmpIdToDeityIdMap, nil
 }
 

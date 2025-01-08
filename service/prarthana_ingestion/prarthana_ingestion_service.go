@@ -49,24 +49,20 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, prar
 		log.Fatalf("Failed to prepare chapter map: %v", err)
 	}
 
-	// Open the provided CSV file
 	file, err := os.Open(PrarthanaCsvFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("error opening file: %w", err)
 	}
 	defer file.Close()
 
-	// Create a CSV reader
 	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1 // Allow variable number of fields per record
+	reader.FieldsPerRecord = -1
 
-	// Read the CSV header
 	header, err := reader.Read()
 	if err != nil {
 		return nil, fmt.Errorf("error reading header: %w", err)
 	}
 
-	// Map CSV header to field indices in the Shlok struct
 	fieldMap := make(map[string]int)
 	for i, field := range header {
 		fieldMap[field] = i
@@ -84,36 +80,30 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, prar
 	prarthanaIdMap := make(map[string]string)
 	prarthanas := make([]entity.Prarthana, 0)
 	for i, record := range records {
-		// Defensive check to avoid index out of range errors
 		if len(record) <= fieldMap["ID"] {
 			log.Printf("Skipping record %d: Missing ID field\n", i+1)
 			continue
 		}
-
-		// Convert the ID from string to an integer
 		id, err := strconv.Atoi(record[fieldMap["ID"]])
 		if err != nil {
 			log.Printf("Skipping record %d: Invalid ID format\n", i+1)
 			continue
 		}
-
-		// Check if the ID is within the specified range
 		if id < startID || id > endID {
 			continue
 		}
 
-		// Defensive check for the Name field
 		if len(record) <= fieldMap["Name (Optional)"] {
 			log.Printf("Skipping record %d: Missing Name field\n", i+1)
 			continue
 		}
-		name := record[fieldMap["Name (Mandatory)"]]
-		tmpId := record[fieldMap["ID"]]
 		deityIds := make([]string, 0)
+		name := record[fieldMap["Name (Mandatory)"]]
 		re := regexp.MustCompile(`[^a-zA-Z0-9\s]+`)
 		if re.MatchString(name) {
 			return nil, fmt.Errorf("the name '%s' contains special characters. Please remove them", name)
 		}
+		tmpId := record[fieldMap["ID"]]
 		if val, found := deityIdMap[prarthanaToDeityMap[tmpId]]; found {
 			deityIds = []string{val}
 		}
@@ -149,9 +139,6 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, prar
 			Instruction:   map[string]string{},
 			ItemsRequired: map[string][]string{},
 		}
-
-		//baseFilename := strings.ToLower(strings.ReplaceAll(name, " ", "_"))
-
 		prarthana.UiInfo = entity.PrarthanaUIInfo{
 			AlbumArt:        fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", record[fieldMap["Album Art"]]),
 			DefaultImageUrl: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", record[fieldMap["Album Art"]]),
@@ -277,24 +264,20 @@ func prepareVariantMap(variantCsvFilePath string, chapterMap map[string]entity.C
 }
 
 func PreparePrarthanaToDeityMap(csvFilePath string) (map[string]string, map[string][]string) {
-	// Open the CSV file
 	file, err := os.Open(csvFilePath)
 	if err != nil {
 		return nil, nil
 	}
 	defer file.Close()
 
-	// Create a CSV reader
 	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1 // Allow variable number of fields per record
+	reader.FieldsPerRecord = -1
 
-	// Read the CSV header
 	header, err := reader.Read()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return nil, nil
 	}
-	// Map CSV header to field indices in the Prayer struct
 	fieldMap := make(map[string]int)
 	for i, field := range header {
 		fieldMap[field] = i

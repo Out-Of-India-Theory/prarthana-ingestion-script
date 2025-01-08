@@ -40,27 +40,23 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, prarthanaToD
 	}
 	defer file.Close()
 
-	// Create a CSV reader
 	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1 // Allow variable number of fields per record
+	reader.FieldsPerRecord = -1
 
-	// Read the CSV header
 	header, err := reader.Read()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return nil, err
 	}
-	// Map CSV header to field indices in the Prayer struct
+
 	fieldMap := make(map[string]int)
 	for i, field := range header {
 		fieldMap[field] = i
 	}
 
-	// Create a slice to store prayer objects
 	var deities []entity.DeityDocument
 	deityIdMap := make(map[string]string)
 
-	// Read remaining records from the CSV file
 	records, err := reader.ReadAll()
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -70,29 +66,22 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, prarthanaToD
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Iterate over each record in the CSV file
 	for i, record := range records {
-		log.Printf("Processing record %d\n", i+1) // Log the current record number
+		log.Printf("Processing record %d\n", i+1)
 
-		// Defensive check to avoid index out of range errors
 		if len(record) <= fieldMap["ID"] {
 			log.Printf("Skipping record %d: Missing ID field\n", i+1)
 			continue
 		}
 
-		// Convert the ID from string to an integer
 		id, err := strconv.Atoi(record[fieldMap["ID"]])
 		if err != nil {
 			log.Printf("Skipping record %d: Invalid ID format\n", i+1)
 			continue
 		}
-
-		// Check if the ID is within the specified range
 		if id < startID || id > endID {
 			continue
 		}
-
-		// Defensive check for the Name field
 		if len(record) <= fieldMap["Name (Optional)"] {
 			log.Printf("Skipping record %d: Missing Name field\n", i+1)
 			continue
@@ -143,24 +132,20 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, prarthanaToD
 }
 
 func preparePrarthanaToDeityMap(csvFilePath string) (map[string]string, map[string][]string) {
-	// Open the CSV file
 	file, err := os.Open(csvFilePath)
 	if err != nil {
 		return nil, nil
 	}
 	defer file.Close()
 
-	// Create a CSV reader
 	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1 // Allow variable number of fields per record
+	reader.FieldsPerRecord = -1
 
-	// Read the CSV header
 	header, err := reader.Read()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return nil, nil
 	}
-	// Map CSV header to field indices in the Prayer struct
 	fieldMap := make(map[string]int)
 	for i, field := range header {
 		fieldMap[field] = i
