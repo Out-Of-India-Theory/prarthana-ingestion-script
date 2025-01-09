@@ -95,32 +95,47 @@ func (r *PrarthanaDataMongoRepository) InsertManyStotras(ctx context.Context, st
 		}
 	}
 	return nil
-	//var documents []interface{}
-	//for _, stotra := range stotras {
-	//	documents = append(documents, stotra)
-	//}
-	//
-	//result, err := r.stotraCollection.InsertMany(ctx, documents)
-	//if err != nil {
-	//	return fmt.Errorf("error inserting documents: %w", err)
-	//}
-	//
-	//log.Printf("Inserted %d documents with IDs: %v\n", len(result.InsertedIDs), result.InsertedIDs)
-	//return nil
 }
 
 func (r *PrarthanaDataMongoRepository) InsertManyDeities(ctx context.Context, deities []entity.DeityDocument) error {
-	var documents []interface{}
+	if deities == nil || len(deities) == 0 {
+		log.Println("No deity provided for insertion.")
+		return nil
+	}
+
 	for _, deity := range deities {
-		documents = append(documents, deity)
+		result := r.deityCollection.FindOne(ctx, bson.M{"TmpId": deity.TmpId})
+		if result.Err() != nil {
+			if result.Err() == mongo.ErrNoDocuments {
+				log.Printf("No existing document found for ID: %v. Inserting new deity.\n", deity.Id)
+				deity.Id = uuid.NewString()
+				_, err := r.deityCollection.InsertOne(ctx, deity)
+				if err != nil {
+					log.Printf("Failed to insert deity with ID: %v. Error: %v\n", deity.Id, err)
+					return fmt.Errorf("failed to insert deity with ID %v: %w", deity.Id, err)
+				}
+				log.Printf("Successfully inserted new deity with ID: %v.\n", deity.Id)
+			} else {
+				log.Printf("Failed to find and replace deity with ID: %v. Error: %v\n", deity.Id, result.Err())
+				return fmt.Errorf("failed to find and replace deity with ID %v: %w", deity.Id, result.Err())
+			}
+		} else {
+			var doc entity.DeityDocument
+			err := result.Decode(&doc)
+			if err != nil {
+				return fmt.Errorf("error decoding deity document: %w", err)
+			}
+			deity.Id = doc.Id
+			updateResult, err := r.deityCollection.ReplaceOne(ctx, bson.M{"TmpId": deity.TmpId}, deity)
+			if err != nil {
+				return fmt.Errorf("error updating deity with ID %v: %w", deity.Id, err)
+			}
+			if updateResult.MatchedCount == 0 {
+				return fmt.Errorf("error updating deity with ID %v: %w", deity.Id, err)
+			}
+			log.Printf("Successfully updated deity with ID: %v.\n", deity.Id)
+		}
 	}
-
-	result, err := r.deityCollection.InsertMany(ctx, documents)
-	if err != nil {
-		return fmt.Errorf("error inserting documents: %w", err)
-	}
-
-	log.Printf("Inserted %d documents with IDs: %v\n", len(result.InsertedIDs), result.InsertedIDs)
 	return nil
 }
 
@@ -131,7 +146,7 @@ func (r *PrarthanaDataMongoRepository) InsertManyPrarthanas(ctx context.Context,
 	}
 
 	for _, prarthana := range prarthanas {
-		result := r.prarthanaCollection.FindOne(ctx, bson.M{"tmp_id": prarthana.TmpId})
+		result := r.prarthanaCollection.FindOne(ctx, bson.M{"TmpId": prarthana.TmpId})
 		if result.Err() != nil {
 			if result.Err() == mongo.ErrNoDocuments {
 				log.Printf("No existing document found for ID: %v. Inserting new prarthana.\n", prarthana.Id)
@@ -153,7 +168,7 @@ func (r *PrarthanaDataMongoRepository) InsertManyPrarthanas(ctx context.Context,
 				return fmt.Errorf("error decoding prarthana document: %w", err)
 			}
 			prarthana.Id = prarthanaDoc.Id
-			updateResult, err := r.prarthanaCollection.ReplaceOne(ctx, bson.M{"tmp_id": prarthana.TmpId}, prarthana)
+			updateResult, err := r.prarthanaCollection.ReplaceOne(ctx, bson.M{"TmpId": prarthana.TmpId}, prarthana)
 			if err != nil {
 				return fmt.Errorf("error updating prarthana with ID %v: %w", prarthana.Id, err)
 			}

@@ -1,7 +1,7 @@
 package entity
 
 type DeityDocument struct {
-	TmpId          string
+	TmpId          string            `bson:"TmpId"`
 	Id             string            `bson:"_id" json:"_id"`
 	Order          int               `json:"order" bson:"order"`
 	Title          map[string]string `json:"title" bson:"title"`

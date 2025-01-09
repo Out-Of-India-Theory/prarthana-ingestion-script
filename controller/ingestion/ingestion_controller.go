@@ -106,12 +106,8 @@ func (con *Controller) PrarthanaIngestion(c *gin.Context) {
 
 func (con *Controller) DeityIngestion(c *gin.Context) {
 	ctx := c.Request.Context()
-	var requestBody struct {
-		DeityCsvFilePath            string `json:"deity_csv_file_path"`
-		PrarthanaToDeityCsvFilePath string `json:"prarthana_to_deity_csv_file_path"`
-		StartID                     int    `json:"start_id"`
-		EndID                       int    `json:"end_id"`
-	}
+	ctx = util.SetZohoAccessTokenInContext(ctx, c.Request.Header.Get("zoho-access-token"))
+	var requestBody entity.IngestionRequest
 
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -120,7 +116,7 @@ func (con *Controller) DeityIngestion(c *gin.Context) {
 		})
 		return
 	}
-	_, err := con.service.DeityIngestionService().DeityIngestion(ctx, requestBody.PrarthanaToDeityCsvFilePath, requestBody.DeityCsvFilePath, requestBody.StartID, requestBody.EndID)
+	_, err := con.service.DeityIngestionService().DeityIngestion(ctx, requestBody.StartID, requestBody.EndID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  http.StatusInternalServerError,

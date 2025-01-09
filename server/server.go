@@ -21,14 +21,14 @@ func InitServer(ctx context.Context, app *app.App, configuration *configuration.
 	//repo initializations
 	prarthanaDataMongoRepository := prarthana_data.InitPrarthanaDataMongoRepository(ctx, *configuration)
 
-	zohoAuthService := zoho.InitZohoService(ctx, configuration, &http.Client{})
+	zohoService := zoho.InitZohoService(ctx, configuration, &http.Client{})
 	//service initializations
-	shlokIngestionService := shlok_ingestion.InitShlokIngestionService(ctx, prarthanaDataMongoRepository, zohoAuthService)
-	stotraIngestionService := stotra_ingestion.InitStotraIngestionService(ctx, prarthanaDataMongoRepository, zohoAuthService)
-	prarthanaIngestionService := prarthana_ingestion.InitPrathanaIngestionService(ctx, prarthanaDataMongoRepository, zohoAuthService)
-	deityIngestionService := deity_ingestion.InitDeityIngestionService(ctx, prarthanaDataMongoRepository)
+	shlokIngestionService := shlok_ingestion.InitShlokIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
+	stotraIngestionService := stotra_ingestion.InitStotraIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
+	prarthanaIngestionService := prarthana_ingestion.InitPrathanaIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
+	deityIngestionService := deity_ingestion.InitDeityIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
 
-	facadeService := facade.InitFacadeService(ctx, configuration, shlokIngestionService, stotraIngestionService, prarthanaIngestionService, deityIngestionService, zohoAuthService)
+	facadeService := facade.InitFacadeService(ctx, configuration, shlokIngestionService, stotraIngestionService, prarthanaIngestionService, deityIngestionService, zohoService)
 	registerMiddleware(app, configuration)
 	registerRoutes(ctx, app, facadeService, configuration)
 
