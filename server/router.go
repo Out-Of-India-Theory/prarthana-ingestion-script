@@ -8,6 +8,7 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/middleware"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/facade"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/zoho"
+	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
@@ -25,14 +26,9 @@ func registerRoutes(ctx context.Context, app *app.App, service facade.Service, c
 		prarthanaIngestionV1.POST("/prarthanas", am.ZohoAuthMiddleware(), prarthanaIngestionController.PrarthanaIngestion)
 		prarthanaIngestionV1.POST("/deities", am.ZohoAuthMiddleware(), prarthanaIngestionController.DeityIngestion)
 	}
+	app.Engine.Static("/static", "./static")
 
-	//auth
-	//{
-	//	authController := auth.InitZohoAuthController(ctx, service, configuration)
-	//	authGroup := basePath.Group("auth/v1")
-	//	authGroup.GET("/zoho/auth", authController.GetAuthorizationURL)
-	//	authGroup.GET("/zoho/callback", authController.HandleAuthCallback)
-	//	authGroup.Use(authMiddleware.AuthMiddleware(ctx, authRepo), authController.CheckTokenMiddleware())
-	//	authGroup.GET("/read-sheet/:sheetID", authController.ReadZohoSheet)
-	//}
+	app.Engine.GET("/index.html", func(c *gin.Context) {
+		c.File("./static/index.html")
+	})
 }

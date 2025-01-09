@@ -24,8 +24,8 @@ func InitServer(ctx context.Context, app *app.App, configuration *configuration.
 	zohoAuthService := zoho.InitZohoService(ctx, configuration, &http.Client{})
 	//service initializations
 	shlokIngestionService := shlok_ingestion.InitShlokIngestionService(ctx, prarthanaDataMongoRepository, zohoAuthService)
-	stotraIngestionService := stotra_ingestion.InitStotraIngestionService(ctx, prarthanaDataMongoRepository)
-	prarthanaIngestionService := prarthana_ingestion.InitPrathanaIngestionService(ctx, prarthanaDataMongoRepository)
+	stotraIngestionService := stotra_ingestion.InitStotraIngestionService(ctx, prarthanaDataMongoRepository, zohoAuthService)
+	prarthanaIngestionService := prarthana_ingestion.InitPrathanaIngestionService(ctx, prarthanaDataMongoRepository, zohoAuthService)
 	deityIngestionService := deity_ingestion.InitDeityIngestionService(ctx, prarthanaDataMongoRepository)
 
 	facadeService := facade.InitFacadeService(ctx, configuration, shlokIngestionService, stotraIngestionService, prarthanaIngestionService, deityIngestionService, zohoAuthService)

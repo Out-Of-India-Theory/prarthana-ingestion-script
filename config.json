@@ -11,7 +11,7 @@
   "MongoConfig": {
     "URI": "config_uri",
     "Timeout": "5s",
-    "Database": "prarthana-service"
+    "Database": "prarthana_service_tmp"
   },
   "zohoconfig": {
     "clientid": "XXXX",
