@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ebedbb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            color: #1c5e35;
+            margin-bottom: 20px;
+        }
+        button {
+            width: 80%;
+            max-width: 400px;
+            margin: 10px 0;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            background-color: #1c5e35;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        button:hover {
+            background-color: #147a4e;
+            transform: scale(1.05);
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .response-container {
+            width: 80%;
+            max-width: 400px;
+            margin-top: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            font-size: 14px;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 10px;
+            resize: none;
+            background-color: #e9ecef;
+        }
+        .input-group {
+            width: 80%;
+            max-width: 400px;
+            margin-bottom: 10px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+        }
+        h2 {
+            color: #008550;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+<h1>Prarthana Data Ingestion</h1>
+
+<div class="input-group">
+    <label for="start_id">Start ID:</label>
+    <input type="number" id="start_id" placeholder="Enter start ID">
+</div>
+
+<div class="input-group">
+    <label for="end_id">End ID:</label>
+    <input type="number" id="end_id" placeholder="Enter end ID">
+</div>
+
+<button id="btn1" onclick="callApi('https://localhost:8000/prarthana_script/v1/shloks')">1. Ingest Shloks</button>
+<button id="btn2" onclick="callApi('https://api.stage.dharmayana.in/prarthana_script/v1/stotras')">2. Ingest Stotras</button>
+<button id="btn3" onclick="callApi('https://api.stage.dharmayana.in/prarthana_script/v1/prarthanas/')">3. Ingest Prarthanas</button>
+<button id="btn4" onclick="callApi('https://api.stage.dharmayana.in/prarthana_script/v1/deities')">4. Ingest Deities</button>
+
+<div class="response-container">
+    <h2>Response</h2>
+    <textarea id="response" readonly></textarea>
+</div>
+
+<script>
+    async function callApi(endpoint) {
+        const startId = document.getElementById("start_id").value;
+        const endId = document.getElementById("end_id").value;
+
+        // Validate inputs for start_id and end_id
+        if (!startId || !endId) {
+            document.getElementById("response").value = "Please enter both Start ID and End ID.";
+            return;
+        }
+
+        // Disable all buttons during the API call
+        const buttons = document.querySelectorAll("button");
+        buttons.forEach(button => button.disabled = true);
+
+        // Prepare request body with start_id and end_id
+        const requestBody = JSON.stringify({ start_id: startId, end_id: endId });
+
+        try {
+            // Indicate that the API call is in progress
+            document.getElementById("response").value = `Calling API: ${endpoint} with start_id=${startId} and end_id=${endId}...`;
+
+            // Fetch API response with POST request
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+
+            // Display formatted JSON response
+            document.getElementById("response").value = JSON.stringify(data, null, 2);
+        } catch (error) {
+            // Handle errors gracefully
+            document.getElementById("response").value = `Error: ${error.message}`;
+        } finally {
+            // Re-enable all buttons after the API call is completed
+            buttons.forEach(button => button.disabled = false);
+        }
+    }
+</script>
+</body>
+</html>
