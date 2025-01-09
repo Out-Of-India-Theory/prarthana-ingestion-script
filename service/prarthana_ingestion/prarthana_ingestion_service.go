@@ -134,13 +134,16 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, prar
 		} else {
 			studioRecorded = false
 		}
+		festivalIdsString := record[fieldMap["Festival Ids"]]
+		festivalIds := strings.Split(festivalIdsString, ",")
 		prarthana := entity.Prarthana{
 			TmpId: tmpId,
 			Id:    prarthanaUuid,
 			Title: map[string]string{
 				"default": name,
 			},
-			Days: util.GetDaysFromTitle(name),
+			FestivalIds: festivalIds,
+			Days:        util.GetDaysFromTitle(name),
 			AudioInfo: entity.AudioInfo{AudioUrl: audioURL,
 				IsAudioAvailable: true,
 				IsStudioRecorded: studioRecorded},

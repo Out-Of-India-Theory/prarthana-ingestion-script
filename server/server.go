@@ -11,8 +11,10 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/prarthana_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/shlok_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/stotra_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/zoho"
 	"github.com/gin-gonic/gin"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"net/http"
 )
 
 func InitServer(ctx context.Context, app *app.App, configuration *configuration.Configuration) {
@@ -24,7 +26,8 @@ func InitServer(ctx context.Context, app *app.App, configuration *configuration.
 	stotraIngestionService := stotra_ingestion.InitStotraIngestionService(ctx, prarthanaDataMongoRepository)
 	prarthanaIngestionService := prarthana_ingestion.InitPrathanaIngestionService(ctx, prarthanaDataMongoRepository)
 	deityIngestionService := deity_ingestion.InitDeityIngestionService(ctx, prarthanaDataMongoRepository)
-	facadeService := facade.InitFacadeService(ctx, configuration, shlokIngestionService, stotraIngestionService, prarthanaIngestionService, deityIngestionService)
+	zohoAuthService := zoho.InitZohoService(ctx, configuration, &http.Client{})
+	facadeService := facade.InitFacadeService(ctx, configuration, shlokIngestionService, stotraIngestionService, prarthanaIngestionService, deityIngestionService, zohoAuthService)
 	registerMiddleware(app, configuration)
 	registerRoutes(ctx, app, facadeService, configuration)
 

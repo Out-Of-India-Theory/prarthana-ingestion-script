@@ -5,6 +5,7 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/prarthana_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/shlok_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/stotra_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/zoho"
 )
 
 type Service interface {
@@ -12,4 +13,5 @@ type Service interface {
 	StotraIngestionService() stotra_ingestion.Service
 	PrarthanaIngestionService() prarthana_ingestion.Service
 	DeityIngestionService() deity_ingestion.Service
+	ZohoAuthService() zoho.Service
 }
