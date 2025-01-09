@@ -5,13 +5,33 @@ import (
 	"github.com/Out-Of-India-Theory/oit-go-commons/config"
 	"github.com/spf13/viper"
 	"strings"
+	"time"
 )
 
 var configuration *Configuration
 
 type Configuration struct {
-	ServerConfig config.AppConfig
-	MongoConfig  MongoConfig
+	ServerConfig     config.AppConfig
+	MongoConfig      MongoConfig
+	ZohoAuthConfig   ZohoAuthConfig
+	AuthClientConfig HttpClientConfig
+}
+
+type ZohoAuthConfig struct {
+	ClientId      string
+	ClientSecret  string
+	RedirectUrl   string
+	TokenUrl      string
+	AuthUrl       string
+	SpreadsheetId string
+	Scopes        string
+}
+
+type HttpClientConfig struct {
+	Address       string
+	Timeout       time.Duration
+	ApiKey        string
+	MaxThroughput int
 }
 
 type MongoConfig struct {

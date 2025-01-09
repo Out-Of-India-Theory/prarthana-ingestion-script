@@ -19,6 +19,7 @@ type Prarthana struct {
 	TmpId              string              `bson:"TmpId"`
 	Id                 string              `bson:"_id"`
 	Title              map[string]string   `bson:"title"`
+	FestivalIds        []string            `bson:"festival_ids"`
 	AudioInfo          AudioInfo           `bson:"audio_info"`
 	Days               []int               `bson:"days" `
 	Description        map[string]string   `bson:"description" `

@@ -8,6 +8,7 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/prarthana_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/shlok_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/stotra_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/zoho"
 	"go.uber.org/zap"
 )
 
@@ -18,6 +19,7 @@ type FacadeService struct {
 	stotraIngestionService    stotra_ingestion.Service
 	prarthanaIngestionService prarthana_ingestion.Service
 	deityIngestionService     deity_ingestion.Service
+	zohoAuthService           zoho.Service
 }
 
 func InitFacadeService(
@@ -27,6 +29,8 @@ func InitFacadeService(
 	stotraIngestionService stotra_ingestion.Service,
 	prarthanaIngestionService prarthana_ingestion.Service,
 	deityIngestionService deity_ingestion.Service,
+	zohoAuthService zoho.Service,
+
 ) *FacadeService {
 	return &FacadeService{
 		logger:                    logging.WithContext(ctx),
@@ -35,6 +39,7 @@ func InitFacadeService(
 		stotraIngestionService:    stotraIngestionService,
 		prarthanaIngestionService: prarthanaIngestionService,
 		deityIngestionService:     deityIngestionService,
+		zohoAuthService:           zohoAuthService,
 	}
 }
 
@@ -52,4 +57,8 @@ func (s *FacadeService) PrarthanaIngestionService() prarthana_ingestion.Service 
 
 func (s *FacadeService) DeityIngestionService() deity_ingestion.Service {
 	return s.deityIngestionService
+}
+
+func (s *FacadeService) ZohoAuthService() zoho.Service {
+	return s.zohoAuthService
 }

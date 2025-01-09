@@ -14,5 +14,13 @@
       "Timeout": "5s"
     },
     "Database": "prarthana-service"
+  },
+  "ZohoAuthConfig": {
+    "ClientId":"xxxx",
+    "ClientSecret" : "xxxx",
+    "RedirectUrl"  : "https://dharmayana.in",
+    "Scopes"       : "ZohoSheet.dataAPI.UPDATE,ZohoSheet.dataAPI.READ",
+    "AuthUrl"      : "https://accounts.zoho.in/oauth/v2/auth",
+    "TokenUrl"     : "https://accounts.zoho.in/oauth/v2/token"
   }
 }
