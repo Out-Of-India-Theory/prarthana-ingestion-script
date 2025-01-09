@@ -21,8 +21,20 @@
             color: #1c5e35;
             margin-bottom: 20px;
         }
-        button {
+        .container {
+            display: flex;
+            justify-content: space-between;
             width: 80%;
+            max-width: 800px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 48%;
+        }
+        button {
+            width: 100%;
             max-width: 400px;
             margin: 10px 0;
             padding: 15px;
@@ -45,12 +57,12 @@
         }
         .response-container {
             width: 80%;
-            max-width: 400px;
+            max-width: 800px;
             margin-top: 20px;
         }
         textarea {
             width: 100%;
-            height: 150px;
+            height: 80px;
             font-size: 14px;
             padding: 10px;
             border: 1px solid #ced4da;
@@ -59,8 +71,8 @@
             background-color: #e9ecef;
         }
         .input-group {
-            width: 80%;
-            max-width: 400px;
+            width: 50%;
+            max-width: 800px;
             margin-bottom: 10px;
         }
         .input-group label {
@@ -87,18 +99,31 @@
 
 <div class="input-group">
     <label for="start_id">Start ID:</label>
-    <input type="number" id="start_id" placeholder="Enter start ID">
+    <input type="number" id="start_id" placeholder="Enter start ID for shlok/stotra">
 </div>
 
 <div class="input-group">
     <label for="end_id">End ID:</label>
-    <input type="number" id="end_id" placeholder="Enter end ID">
+    <input type="number" id="end_id" placeholder="Enter end ID for shlok/stotra">
 </div>
 
-<button id="btn1" onclick="callApi('https://localhost:8000/prarthana_script/v1/shloks')">1. Ingest Shloks</button>
-<button id="btn2" onclick="callApi('https://api.stage.dharmayana.in/prarthana_script/v1/stotras')">2. Ingest Stotras</button>
-<button id="btn3" onclick="callApi('https://api.stage.dharmayana.in/prarthana_script/v1/prarthanas/')">3. Ingest Prarthanas</button>
-<button id="btn4" onclick="callApi('https://api.stage.dharmayana.in/prarthana_script/v1/deities')">4. Ingest Deities</button>
+<div class="container">
+    <!-- New Buttons on the Left -->
+    <div class="button-group">
+        <button id="btn5" onclick="uploadFiles('https://api.example.com/upload/audio')">Upload Multiple Audio Files</button>
+        <button id="btn6" onclick="uploadFiles('https://api.example.com/upload/pictures')">Upload Multiple Album Arts</button>
+        <button id="btn7" onclick="uploadFiles('https://api.example.com/upload/mixed')">Upload Deity List Images</button>
+        <button id="btn8" onclick="uploadFiles('https://api.example.com/upload/large')">Upload Deity Card Images</button>
+    </div>
+
+    <!-- Old Buttons on the Right -->
+    <div class="button-group">
+        <button id="btn1" onclick="callApi('http://localhost:8080/prarthana_script/v1/shloks')">1. Ingest Shloks</button>
+        <button id="btn2" onclick="callApi('https://api.stage.dharmayana.in/prarthana_script/v1/stotras')">2. Ingest Stotras</button>
+        <button id="btn3" onclick="callApi('https://api.stage.dharmayana.in/prarthana_script/v1/prarthanas/')">3. Ingest Prarthanas</button>
+        <button id="btn4" onclick="callApi('https://api.stage.dharmayana.in/prarthana_script/v1/deities')">4. Ingest Deities</button>
+    </div>
+</div>
 
 <div class="response-container">
     <h2>Response</h2>
@@ -107,47 +132,39 @@
 
 <script>
     async function callApi(endpoint) {
-        const startId = document.getElementById("start_id").value;
-        const endId = document.getElementById("end_id").value;
+        const startIdInput = document.getElementById("start_id").value;
+        const endIdInput = document.getElementById("end_id").value;
 
-        // Validate inputs for start_id and end_id
-        if (!startId || !endId) {
-            document.getElementById("response").value = "Please enter both Start ID and End ID.";
+        // Convert inputs to integers
+        const startId = parseInt(startIdInput, 10);
+        const endId = parseInt(endIdInput, 10);
+
+        if (isNaN(startId) || isNaN(endId)) {
+            document.getElementById("response").value = "Please enter valid integers for Start ID and End ID.";
             return;
         }
 
-        // Disable all buttons during the API call
         const buttons = document.querySelectorAll("button");
         buttons.forEach(button => button.disabled = true);
 
-        // Prepare request body with start_id and end_id
         const requestBody = JSON.stringify({ start_id: startId, end_id: endId });
 
         try {
-            // Indicate that the API call is in progress
             document.getElementById("response").value = `Calling API: ${endpoint} with start_id=${startId} and end_id=${endId}...`;
 
-            // Fetch API response with POST request
             const response = await fetch(endpoint, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: requestBody
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-            // Display formatted JSON response
+            const data = await response.json();
             document.getElementById("response").value = JSON.stringify(data, null, 2);
         } catch (error) {
-            // Handle errors gracefully
             document.getElementById("response").value = `Error: ${error.message}`;
         } finally {
-            // Re-enable all buttons after the API call is completed
             buttons.forEach(button => button.disabled = false);
         }
     }
