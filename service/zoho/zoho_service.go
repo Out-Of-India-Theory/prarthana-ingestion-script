@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/configuration"
+	"github.com/Out-Of-India-Theory/prarthana-automated-script/entity"
+	"github.com/Out-Of-India-Theory/prarthana-automated-script/util"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
@@ -15,7 +17,7 @@ import (
 	"time"
 )
 
-type ZohoAuthService struct {
+type ZohoService struct {
 	logger        *zap.Logger
 	configuration *configuration.Configuration
 	httpClient    *http.Client
@@ -23,9 +25,8 @@ type ZohoAuthService struct {
 }
 
 type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int    `json:"expires_in"`
+	AccessToken string `json:"access_token"`
+	ExpiresIn   int    `json:"expires_in"`
 }
 
 type TokenManager struct {
@@ -37,21 +38,21 @@ type TokenManager struct {
 func InitZohoService(ctx context.Context,
 	configuration *configuration.Configuration,
 	httpClient *http.Client,
-) *ZohoAuthService {
-	return &ZohoAuthService{
+) *ZohoService {
+	return &ZohoService{
 		logger:        logging.WithContext(ctx),
 		configuration: configuration,
 		httpClient:    httpClient,
 	}
 }
 
-func (s *ZohoAuthService) GetAuthorizationURL(state string) string {
-	u, _ := url.Parse(s.configuration.ZohoAuthConfig.AuthUrl)
+func (s *ZohoService) GetAuthorizationURL(state string) string {
+	u, _ := url.Parse(s.configuration.ZohoConfig.AuthUrl)
 	q := u.Query()
 	q.Set("response_type", "code")
-	q.Set("client_id", s.configuration.ZohoAuthConfig.ClientId)
+	q.Set("client_id", s.configuration.ZohoConfig.ClientId)
 	q.Set("scope", "ZohoSheet.dataAPI.READ,ZohoSheet.dataAPI.UPDATE")
-	q.Set("redirect_uri", s.configuration.ZohoAuthConfig.RedirectUrl)
+	q.Set("redirect_uri", s.configuration.ZohoConfig.RedirectUrl)
 	q.Set("access_type", "offline")
 	q.Set("prompt", "consent")
 	q.Set("state", state)
@@ -59,15 +60,15 @@ func (s *ZohoAuthService) GetAuthorizationURL(state string) string {
 	return u.String()
 }
 
-func (s *ZohoAuthService) ExchangeCodeForTokens(ctx context.Context, code string) error {
+func (s *ZohoService) ExchangeCodeForTokens(ctx context.Context, code string) error {
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
-	data.Set("client_id", s.configuration.ZohoAuthConfig.ClientId)
-	data.Set("client_secret", s.configuration.ZohoAuthConfig.ClientSecret)
-	data.Set("redirect_uri", s.configuration.ZohoAuthConfig.RedirectUrl)
+	data.Set("client_id", s.configuration.ZohoConfig.ClientId)
+	data.Set("client_secret", s.configuration.ZohoConfig.ClientSecret)
+	data.Set("redirect_uri", s.configuration.ZohoConfig.RedirectUrl)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.configuration.ZohoAuthConfig.TokenUrl, bytes.NewBufferString(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.configuration.ZohoConfig.TokenUrl, bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
@@ -104,47 +105,40 @@ func (s *ZohoAuthService) ExchangeCodeForTokens(ctx context.Context, code string
 	return nil
 }
 
-func (s *ZohoAuthService) RefreshAccessToken() error {
-	if s.tokenManager.RefreshToken == "" {
-		return fmt.Errorf("refresh token not set")
+func (s *ZohoService) RefreshAccessToken() (string, error) {
+	if s.configuration.ZohoConfig.RefreshToken == "" {
+		return "", fmt.Errorf("refresh token not set")
 	}
 
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
-	data.Set("refresh_token", s.tokenManager.RefreshToken)
-	data.Set("client_id", s.configuration.ZohoAuthConfig.ClientId)
-	data.Set("client_secret", s.configuration.ZohoAuthConfig.ClientSecret)
+	data.Set("refresh_token", s.configuration.ZohoConfig.RefreshToken)
+	data.Set("client_id", s.configuration.ZohoConfig.ClientId)
+	data.Set("client_secret", s.configuration.ZohoConfig.ClientSecret)
 
-	resp, err := http.PostForm(s.configuration.ZohoAuthConfig.TokenUrl, data)
+	resp, err := http.PostForm(s.configuration.ZohoConfig.TokenUrl, data)
 	if err != nil {
-		return fmt.Errorf("failed to refresh token: %v", err)
+		return "", fmt.Errorf("failed to refresh token: %v", err)
 	}
 	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to refresh token, response: %s", string(body))
+		return "", fmt.Errorf("failed to refresh token, response: %s", string(body))
 	}
 	var tokenResp struct {
 		AccessToken string `json:"access_token"`
 		ExpiresIn   int    `json:"expires_in"`
 	}
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
-		return err
+		return "", err
 	}
-	s.tokenManager.AccessToken = tokenResp.AccessToken
-	s.tokenManager.ExpiresAt = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
-	return nil
+	return tokenResp.AccessToken, nil
 }
 
-func (s *ZohoAuthService) GetSheetData(sheetId string, sheetName string) ([]byte, error) {
-	if time.Now().After(s.tokenManager.ExpiresAt) {
-		if err := s.RefreshAccessToken(); err != nil {
-			return nil, err
-		}
-	}
-
-	url1 := fmt.Sprintf("https://sheet.zoho.com/api/v2/%s", sheetId)
+func (s *ZohoService) GetSheetData(ctx context.Context, sheetName string) (*entity.SheetResponse, error) {
+	accessToken := util.GetZohoAccessTokenFromContext(ctx)
+	url1 := fmt.Sprintf("https://sheet.zoho.in/api/v2/%s", s.configuration.ZohoConfig.SheetId)
 	data := url.Values{}
 	data.Set("method", "worksheet.records.fetch")
 	data.Set("worksheet_name", sheetName)
@@ -156,7 +150,7 @@ func (s *ZohoAuthService) GetSheetData(sheetId string, sheetName string) ([]byte
 	}
 
 	// Set the required headers
-	req.Header.Set("Authorization", "Zoho-oauthtoken "+s.tokenManager.AccessToken)
+	req.Header.Set("Authorization", "Zoho-oauthtoken "+accessToken)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
@@ -168,9 +162,18 @@ func (s *ZohoAuthService) GetSheetData(sheetId string, sheetName string) ([]byte
 		body, _ := ioutil.ReadAll(resp.Body)
 		return nil, fmt.Errorf("error response from server: %s", string(body))
 	}
-	return ioutil.ReadAll(resp.Body)
+	bytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	var sheetRecords entity.SheetResponse
+	err = json.Unmarshal(bytes, &sheetRecords)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse response body: %w", err)
+	}
+	return &sheetRecords, nil
 }
 
-func (s *ZohoAuthService) IsTokenExpired() bool {
+func (s *ZohoService) IsTokenExpired() bool {
 	return time.Now().After(s.tokenManager.ExpiresAt)
 }

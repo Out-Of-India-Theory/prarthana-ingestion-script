@@ -9,18 +9,18 @@
     "NewRelicLicense": "XXX"
   },
   "MongoConfig": {
-    "MongoConfig": {
-      "URI": "config_uri",
-      "Timeout": "5s"
-    },
+    "URI": "config_uri",
+    "Timeout": "5s",
     "Database": "prarthana-service"
   },
-  "ZohoAuthConfig": {
-    "ClientId":"xxxx",
-    "ClientSecret" : "xxxx",
-    "RedirectUrl"  : "https://dharmayana.in",
-    "Scopes"       : "ZohoSheet.dataAPI.UPDATE,ZohoSheet.dataAPI.READ",
-    "AuthUrl"      : "https://accounts.zoho.in/oauth/v2/auth",
-    "TokenUrl"     : "https://accounts.zoho.in/oauth/v2/token"
+  "zohoconfig": {
+    "clientid": "XXXX",
+    "clientsecret": "XXXX",
+    "redirecturl": "https://dharmayana.in",
+    "scopes": "zohosheet.dataapi.update,zohosheet.dataapi.read",
+    "authurl": "https://accounts.zoho.in/oauth/v2/auth",
+    "tokenurl": "https://accounts.zoho.in/oauth/v2/token",
+    "refreshtoken": "XXX",
+    "sheetid": "XXX"
   }
 }

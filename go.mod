@@ -3,7 +3,7 @@ module github.com/Out-Of-India-Theory/prarthana-automated-script
 go 1.22.4
 
 require (
-	github.com/Out-Of-India-Theory/oit-go-commons v0.0.7
+	github.com/Out-Of-India-Theory/oit-go-commons v0.0.8-0.20241110151102-3f0dc92ada67
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-audio/wav v1.1.0
 	github.com/google/uuid v1.6.0

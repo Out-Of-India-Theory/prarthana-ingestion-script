@@ -5,6 +5,7 @@ import (
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/configuration"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/facade"
+	"github.com/Out-Of-India-Theory/prarthana-automated-script/util"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
@@ -26,10 +27,10 @@ func InitIngestionController(ctx context.Context, service facade.Service, config
 
 func (con *Controller) ShlokIngestion(c *gin.Context) {
 	ctx := c.Request.Context()
+	ctx = util.SetZohoAccessTokenInContext(ctx, c.Request.Header.Get("zoho-access-token"))
 	var requestBody struct {
-		CsvFilePath string `json:"csv_file_path"`
-		StartID     int    `json:"start_id"`
-		EndID       int    `json:"end_id"`
+		StartID int `json:"start_id"`
+		EndID   int `json:"end_id"`
 	}
 
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
@@ -39,7 +40,7 @@ func (con *Controller) ShlokIngestion(c *gin.Context) {
 		})
 		return
 	}
-	err := con.service.ShlokIngestionService().ShlokIngestion(ctx, requestBody.CsvFilePath, requestBody.StartID, requestBody.EndID)
+	err := con.service.ShlokIngestionService().ShlokIngestion(ctx, "", requestBody.StartID, requestBody.EndID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  http.StatusInternalServerError,

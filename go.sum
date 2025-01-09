@@ -1,5 +1,5 @@
-github.com/Out-Of-India-Theory/oit-go-commons v0.0.7 h1:ltaQoXlkef0zCCi75CUaO/JgvUJMzHLbvIzxrUDLsG0=
-github.com/Out-Of-India-Theory/oit-go-commons v0.0.7/go.mod h1:tM4TG2ab3LpSmyWwclqe95i9JiaH4xE5mKZip0Q+1o4=
+github.com/Out-Of-India-Theory/oit-go-commons v0.0.8-0.20241110151102-3f0dc92ada67 h1:GmlL+62KqLOyYDm39asB7UHMTVgzlW9+NquDZhNU0w4=
+github.com/Out-Of-India-Theory/oit-go-commons v0.0.8-0.20241110151102-3f0dc92ada67/go.mod h1:tM4TG2ab3LpSmyWwclqe95i9JiaH4xE5mKZip0Q+1o4=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/bytedance/sonic v1.11.6 h1:oUp34TzMlL+OY1OUWxHqsdkgC/Zfc85zGqw9siXjrc0=

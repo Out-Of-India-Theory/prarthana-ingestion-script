@@ -29,14 +29,14 @@ type PrarthanaDataMongoRepository struct {
 	stotraCollection    *mongo.Collection
 }
 
-func InitPrarthanaDataMongoRepository(ctx context.Context, mongoConfig configuration.MongoConfig) *PrarthanaDataMongoRepository {
-	mongoClient := mongoCommons.InitMongoClient(ctx, mongoConfig.MongoConfig)
+func InitPrarthanaDataMongoRepository(ctx context.Context, config configuration.Configuration) *PrarthanaDataMongoRepository {
+	mongoClient := mongoCommons.InitMongoClient(ctx, config.MongoConfig)
 	return &PrarthanaDataMongoRepository{
 		logger:              logging.WithContext(ctx),
-		prarthanaCollection: mongoClient.Database(mongoConfig.Database).Collection(prarthana_collection),
-		deityCollection:     mongoClient.Database(mongoConfig.Database).Collection(deity_collection),
-		shlokCollection:     mongoClient.Database(mongoConfig.Database).Collection(shlok_collection),
-		stotraCollection:    mongoClient.Database(mongoConfig.Database).Collection(stotra_collection),
+		prarthanaCollection: mongoClient.Database(config.MongoConfig.Database).Collection(prarthana_collection),
+		deityCollection:     mongoClient.Database(config.MongoConfig.Database).Collection(deity_collection),
+		shlokCollection:     mongoClient.Database(config.MongoConfig.Database).Collection(shlok_collection),
+		stotraCollection:    mongoClient.Database(config.MongoConfig.Database).Collection(stotra_collection),
 	}
 }
 

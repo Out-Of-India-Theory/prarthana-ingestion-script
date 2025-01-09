@@ -55,23 +55,24 @@ func (con *Controller) HandleAuthCallback(c *gin.Context) {
 	})
 }
 
-func (con *Controller) CheckTokenMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if con.service.ZohoAuthService().IsTokenExpired() {
-			if err := con.service.ZohoAuthService().RefreshAccessToken(); err != nil {
-				c.JSON(http.StatusUnauthorized, gin.H{
-					"status":  http.StatusUnauthorized,
-					"message": "Token expired and failed to refresh",
-				})
-				c.Abort()
-				return
-			}
-		}
-		c.Next()
-	}
-}
+//func (con *Controller) CheckTokenMiddleware() gin.HandlerFunc {
+//	return func(c *gin.Context) {
+//		if con.service.ZohoAuthService().IsTokenExpired() {
+//			if err := con.service.ZohoAuthService().RefreshAccessToken(); err != nil {
+//				c.JSON(http.StatusUnauthorized, gin.H{
+//					"status":  http.StatusUnauthorized,
+//					"message": "Token expired and failed to refresh",
+//				})
+//				c.Abort()
+//				return
+//			}
+//		}
+//		c.Next()
+//	}
+//}
 
 func (con *Controller) ReadZohoSheet(c *gin.Context) {
+	ctx := c.Request.Context()
 	sheetID := c.Param("sheet-id")
 	if sheetID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -88,7 +89,7 @@ func (con *Controller) ReadZohoSheet(c *gin.Context) {
 		})
 		return
 	}
-	sheetData, err := con.service.ZohoAuthService().GetSheetData(sheetID, sheetName)
+	sheetData, err := con.service.ZohoAuthService().GetSheetData(ctx, sheetName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  http.StatusInternalServerError,

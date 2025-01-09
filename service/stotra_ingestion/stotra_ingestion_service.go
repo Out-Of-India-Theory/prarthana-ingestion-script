@@ -7,7 +7,7 @@ import (
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/entity"
 	mongoRepo "github.com/Out-Of-India-Theory/prarthana-automated-script/repository/mongo/prarthana_data"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/util"
+	"github.com/Out-Of-India-Theory/prarthana-automated-script/util"
 	"github.com/go-audio/wav"
 	"github.com/hajimehoshi/go-mp3"
 	"go.uber.org/zap"

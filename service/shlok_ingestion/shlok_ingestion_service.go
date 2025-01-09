@@ -7,7 +7,8 @@ import (
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-automated-script/entity"
 	mongoRepo "github.com/Out-Of-India-Theory/prarthana-automated-script/repository/mongo/prarthana_data"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/util"
+	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-automated-script/util"
 	"go.uber.org/zap"
 	"log"
 	"os"
@@ -17,18 +18,27 @@ import (
 type ShlokIngestionService struct {
 	logger                   *zap.Logger
 	prarthanaMongoRepository mongoRepo.MongoRepository
+	zohoService              zoho.Service
 }
 
 func InitShlokIngestionService(ctx context.Context,
 	prarthanaMongoRepository mongoRepo.MongoRepository,
+	zohoService zoho.Service,
 ) *ShlokIngestionService {
 	return &ShlokIngestionService{
 		logger:                   logging.WithContext(ctx),
 		prarthanaMongoRepository: prarthanaMongoRepository,
+		zohoService:              zohoService,
 	}
 }
 
 func (s *ShlokIngestionService) ShlokIngestion(ctx context.Context, csvFilePath string, startID, endID int) error {
+	sheetRecords, err := s.zohoService.GetSheetData(ctx, "shloka")
+	if err != nil {
+		return err
+	}
+	println(len(sheetRecords.Records))
+
 	file, err := os.Open(csvFilePath)
 	if err != nil {
 		return fmt.Errorf("error opening file: %w", err)
