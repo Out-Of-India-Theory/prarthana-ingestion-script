@@ -73,11 +73,17 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		if id < startID || id > endID {
 			continue
 		}
-		deityName := record["Title (Default)"].(string)
+		deityNameDefault := record["Title (Default)"].(string)
 		re := regexp.MustCompile(`[^a-zA-Z0-9\s]+`)
-		if re.MatchString(deityName) {
-			return nil, fmt.Errorf("the name '%s' contains special characters. Please remove them", deityName)
+		if re.MatchString(deityNameDefault) {
+			return nil, fmt.Errorf("the name '%s' contains special characters. Please remove them", deityNameDefault)
 		}
+		deityNameHindi := record["Title (Hindi)"].(string)
+		deityNameKannada := record["Title (Kannada)"].(string)
+		deityNameMarathi := record["Title (Marathi)"].(string)
+		deityNameTamil := record["Title (Tamil)"].(string)
+		deityNameTelugu := record["Title (Telugu)"].(string)
+
 		deityUuid := record["UUID"].(string)
 		if strings.TrimSpace(deityUuid) == "" {
 			deityUuid = uuid.NewString()
@@ -102,20 +108,35 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		if !ok {
 			aliases = ""
 		}
-		description, ok := record["Description (Default)"].(string)
+		descriptionDefault, ok := record["Description (Default)"].(string)
 		if !ok {
 			return nil, fmt.Errorf("description unavailable for row : %d", id)
 		}
+		descriptionHindi, ok := record["Description (Hindi)"].(string)
+		descriptionKannada, ok := record["Description (Kannada)"].(string)
+		descriptionMarathi, ok := record["Description (Marathi)"].(string)
+		descriptionTamil, ok := record["Description (Tamil)"].(string)
+		descriptionTelugu, ok := record["Description (Telugu)"].(string)
 		deity := entity.DeityDocument{
 			TmpId: tmpId,
 			Id:    deityUuid,
 			Title: map[string]string{
-				"default": deityName,
+				"default": deityNameDefault,
+				"hi":      deityNameHindi,
+				"kn":      deityNameKannada,
+				"mr":      deityNameMarathi,
+				"ta":      deityNameTamil,
+				"te":      deityNameTelugu,
 			},
-			Slug:    strings.ToLower(strings.ReplaceAll(deityName, " ", "_")),
+			Slug:    strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_")),
 			Aliases: util.GetSplittedString(aliases),
 			Description: map[string]string{
-				"default": description,
+				"default": descriptionDefault,
+				"hi":      descriptionHindi,
+				"kn":      descriptionKannada,
+				"mr":      descriptionMarathi,
+				"ta":      descriptionTamil,
+				"te":      descriptionTelugu,
 			},
 			UIInfo: entity.DeityUIInfo{
 				DefaultImage:    defaultImage,
