@@ -74,14 +74,19 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 			continue
 		}
 
-		name, ok := record["Name (Mandatory)"].(string)
+		nameDefault, ok := record["Name (Mandatory) (Default)"].(string)
 		if !ok {
 			return nil, errors.New("Missing prarthana name")
 		}
+		nameHindi, ok := record["Name (Mandatory) (Hindi)"].(string)
+		nameKannada, ok := record["Name (Mandatory) (Kannada)"].(string)
+		nameMarathi, ok := record["Name (Mandatory) (Marathi)"].(string)
+		nameTamil, ok := record["Name (Mandatory) (Tamil)"].(string)
+		nameTelugu, ok := record["Name (Mandatory) (Telugu)"].(string)
 
 		re := regexp.MustCompile(`[^a-zA-Z0-9\s\-\(\)]+`)
-		if re.MatchString(name) {
-			return nil, fmt.Errorf("the name '%s' contains special characters. Please remove them", name)
+		if re.MatchString(nameDefault) {
+			return nil, fmt.Errorf("the name '%s' contains special characters. Please remove them", nameDefault)
 		}
 		tmpId := strconv.Itoa(id)
 
@@ -95,7 +100,7 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		if !ok {
 			return nil, errors.New("Missing prarthana album art")
 		}
-		audioName := strings.ToLower(util.SanitizeString(name))
+		audioName := strings.ToLower(util.SanitizeString(nameDefault))
 
 		audioURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.wav", audioName)
 		audioURLMp3 := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.mp3", audioName)
@@ -122,25 +127,36 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 			festivalIds = util.GetSplittedString(festivalIdsStr)
 		}
 
-		shortDescription, ok := record["Short Description"].(string)
+		shortDescriptionDefault, ok := record["Short Description (Default)"].(string)
 		if !ok {
 			return nil, fmt.Errorf("Missing prarthana short description : %d", id)
 		}
+		shortDescriptionHindi, ok := record["Short Description (Hindi)"].(string)
+		shortDescriptionKannada, ok := record["Short Description (Kannada)"].(string)
+		shortDescriptionMarathi, ok := record["Short Description (Marathi)"].(string)
+		shortDescriptionTamil, ok := record["Short Description (Tamil)"].(string)
+		shortDescriptionTelugu, ok := record["Short Description (Telugu)"].(string)
+
 		//variantIds, ok := record["Prarthana Variant ID (Comma separated - Ordered)"].(string)
 		variantIds := fmt.Sprintf("%v", record["Prarthana Variant ID (Comma separated - Ordered)"])
 		prarthana := entity.Prarthana{
 			TmpId: tmpId,
 			Id:    extId,
 			Title: map[string]string{
-				"default": name,
+				"default": nameDefault,
+				"hi":      nameHindi,
+				"kn":      nameKannada,
+				"mr":      nameMarathi,
+				"ta":      nameTamil,
+				"te":      nameTelugu,
 			},
 			FestivalIds: festivalIds,
-			Days:        util.GetDaysFromTitle(name),
+			Days:        util.GetDaysFromTitle(nameDefault),
 			AudioInfo: entity.AudioInfo{AudioUrl: audioURL,
 				IsAudioAvailable: true,
 				IsStudioRecorded: studioRecorded},
 			Variants:      []entity.Variant{variantMap[variantIds]},
-			Description:   map[string]string{"default": shortDescription},
+			Description:   map[string]string{"default": shortDescriptionDefault, "hi": shortDescriptionHindi, "kn": shortDescriptionKannada, "mr": shortDescriptionMarathi, "ta": shortDescriptionTamil, "te": shortDescriptionTelugu},
 			Importance:    map[string]string{},
 			Instruction:   map[string]string{},
 			ItemsRequired: map[string][]string{},
