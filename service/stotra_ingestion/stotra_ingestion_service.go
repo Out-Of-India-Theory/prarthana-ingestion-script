@@ -180,18 +180,24 @@ func (s *StotraIngestionService) StotraIngestion(ctx context.Context, startID, e
 				log.Printf("total processed %d\n", i+1)
 				log.Printf("Processing record : row number %d\n", id)
 
-				name, ok := record["Name (Optional)"].(string)
+				nameDefault, ok := record["Name (Optional) (Default)"].(string)
 				if !ok {
 					errChan <- fmt.Errorf("invalid Name : %d", id)
 					return
 				}
-				name = strings.TrimSpace(name)
+				nameDefault = strings.TrimSpace(nameDefault)
 				re := regexp.MustCompile(`[^a-zA-Z0-9\s\-]+`)
-				if re.MatchString(name) {
-					errChan <- fmt.Errorf("the name '%s' contains special characters. Please remove them", name)
+				if re.MatchString(nameDefault) {
+					errChan <- fmt.Errorf("the name '%s' contains special characters. Please remove them", nameDefault)
 					return
 				}
-				baseFilename := strings.ToLower(util.SanitizeString(name))
+				nameHindi, ok := record["Name (Optional) (Hindi)"].(string)
+				nameKannada, ok := record["Name (Optional) (Kannada)"].(string)
+				nameMarathi, ok := record["Name (Optional) (Marathi"].(string)
+				nameTamil, ok := record["Name (Optional) (Tamil)"].(string)
+				nameTelugu, ok := record["Name (Optional) (Telugu)"].(string)
+
+				baseFilename := strings.ToLower(util.SanitizeString(nameDefault))
 				//strings.ToLower(strings.ReplaceAll(strings.TrimSuffix(name, "|"), " ", "_"))
 				isWav := true
 				stotraUrl := "https://d161fa2zahtt3z.cloudfront.net/audio/" + baseFilename + ".wav"
@@ -246,7 +252,12 @@ func (s *StotraIngestionService) StotraIngestion(ctx context.Context, startID, e
 					ID:    strconv.Itoa(id),
 					IntId: id,
 					Title: map[string]string{
-						"default": name,
+						"default": nameDefault,
+						"hi":      nameHindi,
+						"kn":      nameKannada,
+						"mr":      nameMarathi,
+						"ta":      nameTamil,
+						"te":      nameTelugu,
 					},
 					ShlokIds:               util.GetSplittedString(shlokIds),
 					Duration:               durationStr,
