@@ -193,7 +193,7 @@ func (s *StotraIngestionService) StotraIngestion(ctx context.Context, startID, e
 				}
 				nameHindi, ok := record["Name (Optional) (Hindi)"].(string)
 				nameKannada, ok := record["Name (Optional) (Kannada)"].(string)
-				nameMarathi, ok := record["Name (Optional) (Marathi"].(string)
+				nameMarathi, ok := record["Name (Optional) (Marathi)"].(string)
 				nameTamil, ok := record["Name (Optional) (Tamil)"].(string)
 				nameTelugu, ok := record["Name (Optional) (Telugu)"].(string)
 
