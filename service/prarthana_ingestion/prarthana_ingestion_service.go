@@ -237,7 +237,7 @@ func (s *PrarthanaIngestionService) prepareChapterMap(ctx context.Context, stotr
 			DurationInSec: duration,
 			StotraIds:     stotraIds,
 		}
-		chapterMap[fmt.Sprintf("%f", id)] = chapter
+		chapterMap[fmt.Sprintf("%d", int(id))] = chapter
 	}
 	return chapterMap, nil
 }
@@ -276,7 +276,7 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 		if !ok {
 			return nil, errors.New("no ID found")
 		}
-		variantMap[fmt.Sprintf("%f", id)] = variant
+		variantMap[fmt.Sprintf("%d", int(id))] = variant
 	}
 	return variantMap, nil
 }

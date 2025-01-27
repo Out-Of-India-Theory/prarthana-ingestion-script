@@ -175,7 +175,10 @@
                 body: requestBody
             });
 
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.ok) {
+                const errorMessage = await response.text(); // Read the response body (if any) as text
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorMessage}`);
+            }
 
             const data = await response.json();
             document.getElementById("response").value = JSON.stringify(data, null, 2);
