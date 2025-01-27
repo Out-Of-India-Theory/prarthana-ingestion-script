@@ -8,9 +8,9 @@ RUN apk add git
 RUN go env -w GOPRIVATE="github.com/Out-Of-India-Theory" \
     && git config --global url."https://oit-devops:${TOKEN}@github.com".insteadOf "https://github.com"
 
-COPY . /go/src/github.com/Out-Of-India-Theory/prarthana-automated-script
+COPY . /go/src/github.com/Out-Of-India-Theory/prarthana-ingestion-script
 
-WORKDIR /go/src/github.com/Out-Of-India-Theory/prarthana-automated-script
+WORKDIR /go/src/github.com/Out-Of-India-Theory/prarthana-ingestion-script
 
 RUN echo $GOPRIVATE
 
