@@ -15,7 +15,7 @@
   },
   "zohoconfig": {
     "clientid": "XXXX",
-    "clientsecret": "XXXX",
+    "clientsecret": "XXXXX",
     "redirecturl": "https://dharmayana.in",
     "scopes": "zohosheet.dataapi.update,zohosheet.dataapi.read",
     "authurl": "https://accounts.zoho.in/oauth/v2/auth",
