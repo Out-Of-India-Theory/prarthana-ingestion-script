@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/configuration"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

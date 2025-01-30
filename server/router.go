@@ -3,11 +3,11 @@ package server
 import (
 	"context"
 	"github.com/Out-Of-India-Theory/oit-go-commons/app"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/configuration"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/controller/ingestion"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/middleware"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/facade"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/controller/ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/middleware"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/facade"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

@@ -119,15 +119,15 @@
         <input id="fileInputAudio" type="file" multiple style="display:none">
         <textarea id="responseAudio" readonly></textarea>
 
-        <button onclick="triggerFileInput('images')">Upload Prarthana Images</button>
+        <button onclick="triggerPrarthanaFileInput('images')">Upload Prarthana Images</button>
         <input id="fileAlbumArt" type="file" multiple style="display:none">
         <textarea id="responseAlbumArt" readonly></textarea>
 
-        <button onclick="triggerFileInput('images')">Upload Deity List Images</button>
+        <button onclick="triggerDeityListFileInput('images')">Upload Deity List Images</button>
         <input id="fileDeityListImage" type="file" multiple style="display:none">
         <textarea id="responseDeityList" readonly></textarea>
 
-        <button onclick="triggerFileInput('images')">Upload Deity Card Images</button>
+        <button onclick="triggerDeityFileInput('images')">Upload Deity Card Images</button>
         <input id="fileDeityCardImage" type="file" multiple style="display:none">
         <textarea id="responseDeityCard" readonly></textarea> </div>
 
@@ -192,13 +192,19 @@
     function triggerFileInput(buttonType) {
         if (buttonType === 'audio') {
             document.getElementById("fileInputAudio").click();
-        } else if (buttonType === 'images') {
-            document.getElementById("fileAlbumArt").click();
-        } else if (buttonType === 'images') {
-            document.getElementById("fileDeityListImage").click();
-        } else if (buttonType === 'images') {
-            document.getElementById("fileDeityCardImage").click();
         }
+    }
+
+    function triggerPrarthanaFileInput(buttonType) {
+        document.getElementById("fileAlbumArt").click();
+    }
+
+    function triggerDeityListFileInput(buttonType) {
+        document.getElementById("fileDeityListImage").click();
+    }
+
+    function triggerDeityFileInput(buttonType) {
+        document.getElementById("fileDeityCardImage").click();
     }
 
     document.getElementById("fileInputAudio").addEventListener("change", async function () {
@@ -208,7 +214,6 @@
             return;
         }
 
-       // const formData = new FormData();
         const formData = new FormData();
         const specialCharPattern = /[!@#$%^&*(),?":{}|<>]/; // Regex for special characters
         const allowedExtensions = [".mp3", ".png", ".jpeg", ".jpg", ".wav"]; // Allowed extensions
@@ -264,13 +269,14 @@
     });
 
     document.getElementById("fileAlbumArt").addEventListener("change", async function () {
+        console.log("Hello")
         const files = document.getElementById("fileAlbumArt").files;
         if (files.length === 0) {
             document.getElementById("responseAlbumArt").value = "No image files selected.";
             return;
         }
 
-        //const formData = new FormData();
+        const formData = new FormData();
         const specialCharPattern = /[!@#$%^&*(),?":{}|<>]/; // Regex for special characters
         const allowedExtensions = [".mp3", ".png", ".jpeg", ".jpg", ".wav"]; // Allowed extensions
         let errorMessage = "";
@@ -326,6 +332,7 @@
 
 
     document.getElementById("fileDeityListImage").addEventListener("change", async function () {
+        console.log("Hello 1")
         const files = document.getElementById("fileDeityListImage").files;
         if (files.length === 0) {
             document.getElementById("responseDeityList").value = "No image files selected.";

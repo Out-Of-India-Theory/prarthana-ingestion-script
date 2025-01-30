@@ -1,4 +1,4 @@
-module github.com/Out-Of-India-Theory/prarthana-automated-script
+module github.com/Out-Of-India-Theory/prarthana-ingestion-script
 
 go 1.22.4
 
