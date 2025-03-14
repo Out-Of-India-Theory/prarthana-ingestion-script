@@ -92,10 +92,11 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		if val, found := tmpIdToDeityIdMap[tmpId]; found {
 			deityUuid = val
 		}
-		deityImageName, ok := record["Deity Image"].(string)
+		deityImageNameStr, ok := record["Deity Image"].(string)
 		if !ok {
 			return nil, errors.New("Invalid Deity Image")
 		}
+		deityImageName := strings.ToLower(util.SanitizeString(deityImageNameStr))
 		defaultImage := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/list-image/%s.png", deityImageName)
 		if !util.UrlExists(defaultImage) {
 			return nil, fmt.Errorf("deity image does not exist: %s", defaultImage)

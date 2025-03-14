@@ -5,13 +5,13 @@
     "PrometheusPort": "8085",
     "PrometheusEnabled": false,
     "NewRelicEnabled": true,
-    "AppName": "prarthana-automated-script",
+    "AppName": "prarthana-ingestion-script",
     "NewRelicLicense": "XXX"
   },
   "MongoConfig": {
     "URI": "config_uri",
     "Timeout": "5s",
-    "Database": "prarthana_service_tmp"
+    "Database": "prarthana_service_stage"
   },
   "zohoconfig": {
     "clientid": "XXXX",

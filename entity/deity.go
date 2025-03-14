@@ -15,5 +15,5 @@ type DeityDocument struct {
 
 type DeityUIInfo struct {
 	DefaultImage    string `json:"default_image" bson:"default_image"`
-	BackgroundImage string `json:"background_image"`
+	BackgroundImage string `json:"background_image" bson:"background_image"`
 }
