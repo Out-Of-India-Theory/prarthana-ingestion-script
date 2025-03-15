@@ -126,10 +126,29 @@ func (r *PrarthanaDataMongoRepository) InsertManyDeities(ctx context.Context, de
 				return fmt.Errorf("error decoding deity document: %w", err)
 			}
 			deity.Id = doc.Id
-			updateResult, err := r.deityCollection.ReplaceOne(ctx, bson.M{"TmpId": deity.TmpId}, deity)
+			// Convert the deity struct to a BSON map
+			updateData, err := bson.Marshal(deity)
+			if err != nil {
+				return fmt.Errorf("error marshalling deity data: %w", err)
+			}
+			var updateDoc bson.M
+			err = bson.Unmarshal(updateData, &updateDoc)
+			if err != nil {
+				return fmt.Errorf("error unmarshalling deity data to bson.M: %w", err)
+			}
+
+			updateResult, err := r.deityCollection.UpdateOne(
+				ctx,
+				bson.M{"TmpId": deity.TmpId},
+				bson.M{"$set": updateDoc},
+			)
 			if err != nil {
 				return fmt.Errorf("error updating deity with ID %v: %w", deity.Id, err)
 			}
+			//updateResult, err := r.deityCollection.ReplaceOne(ctx, bson.M{"TmpId": deity.TmpId}, deity)
+			//if err != nil {
+			//	return fmt.Errorf("error updating deity with ID %v: %w", deity.Id, err)
+			//}
 			if updateResult.MatchedCount == 0 {
 				return fmt.Errorf("error updating deity with ID %v: %w", deity.Id, err)
 			}
@@ -168,10 +187,30 @@ func (r *PrarthanaDataMongoRepository) InsertManyPrarthanas(ctx context.Context,
 				return fmt.Errorf("error decoding prarthana document: %w", err)
 			}
 			prarthana.Id = prarthanaDoc.Id
-			updateResult, err := r.prarthanaCollection.ReplaceOne(ctx, bson.M{"TmpId": prarthana.TmpId}, prarthana)
+
+			updateData, err := bson.Marshal(prarthana)
+			if err != nil {
+				return fmt.Errorf("error marshalling prarthana data: %w", err)
+			}
+			var updateDoc bson.M
+			err = bson.Unmarshal(updateData, &updateDoc)
+			if err != nil {
+				return fmt.Errorf("error unmarshalling deity data to bson.M: %w", err)
+			}
+
+			updateResult, err := r.prarthanaCollection.UpdateOne(
+				ctx,
+				bson.M{"TmpId": prarthana.TmpId},
+				bson.M{"$set": updateDoc},
+			)
 			if err != nil {
 				return fmt.Errorf("error updating prarthana with ID %v: %w", prarthana.Id, err)
 			}
+
+			//updateResult, err := r.prarthanaCollection.ReplaceOne(ctx, bson.M{"TmpId": prarthana.TmpId}, prarthana)
+			//if err != nil {
+			//	return fmt.Errorf("error updating prarthana with ID %v: %w", prarthana.Id, err)
+			//}
 			if updateResult.MatchedCount == 0 {
 				return fmt.Errorf("error updating prarthana with ID %v: %w", prarthana.Id, err)
 			}

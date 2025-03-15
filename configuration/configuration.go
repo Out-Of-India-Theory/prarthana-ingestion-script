@@ -15,6 +15,11 @@ type Configuration struct {
 	MongoConfig      config.MongoConfig
 	ZohoConfig       ZohoConfig
 	AuthClientConfig HttpClientConfig
+	UIConfig         UIConfig
+}
+
+type UIConfig struct {
+	BackendHost string
 }
 
 type ZohoConfig struct {

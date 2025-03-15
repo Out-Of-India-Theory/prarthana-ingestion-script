@@ -11,7 +11,7 @@
   "MongoConfig": {
     "URI": "config_uri",
     "Timeout": "5s",
-    "Database": "prarthana_service_stage"
+    "Database": "prarthana_service_tmp"
   },
   "zohoconfig": {
     "clientid": "XXXX",
@@ -22,5 +22,8 @@
     "tokenurl": "https://accounts.zoho.in/oauth/v2/token",
     "refreshtoken": "XXX",
     "sheetid": "XXX"
+  },
+  "UIConfig": {
+    "BackendHost": "http://localhost:8080"
   }
 }

@@ -132,10 +132,10 @@
         <textarea id="responseDeityCard" readonly></textarea> </div>
 
     <div class="button-group">
-        <button id="btn1" onclick="callApi('http://localhost:8080/prarthana_script/v1/shloks')">1. Ingest Shloks</button>
-        <button id="btn2" onclick="callApi('http://localhost:8080/prarthana_script/v1/stotras')">2. Ingest Stotras</button>
-        <button id="btn3" onclick="callApi('http://localhost:8080/prarthana_script/v1/prarthanas/')">3. Ingest Prarthanas</button>
-        <button id="btn4" onclick="callApi('http://localhost:8080/prarthana_script/v1/deities')">4. Ingest Deities</button>
+        <button id="btn1" onclick="callApi(`/prarthana_script/v1/shloks`)">1. Ingest Shloks</button>
+        <button id="btn2" onclick="callApi('/prarthana_script/v1/stotras')">2. Ingest Stotras</button>
+        <button id="btn3" onclick="callApi('/prarthana_script/v1/prarthanas/')">3. Ingest Prarthanas</button>
+        <button id="btn4" onclick="callApi('/prarthana_script/v1/deities')">4. Ingest Deities</button>
     </div>
 </div>
 
@@ -145,14 +145,15 @@
 </div>
 
 <script>
-    async function callApi(endpoint) {
+    async function callApi(uri) {
+        const backendHost = "{{ .BackendHost }}";
         const startIdInput = document.getElementById("start_id").value;
         const endIdInput = document.getElementById("end_id").value;
 
         // Convert inputs to integers
         const startId = parseInt(startIdInput, 10);
         const endId = parseInt(endIdInput, 10);
-
+        const endpoint = `${backendHost}${uri}`
         if (isNaN(startId) || isNaN(endId)) {
             document.getElementById("response").value = "Please enter valid integers for Start ID and End ID.";
             return;

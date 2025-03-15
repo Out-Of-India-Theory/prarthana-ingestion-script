@@ -83,6 +83,7 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		deityNameMarathi := record["Title (Marathi)"].(string)
 		deityNameTamil := record["Title (Tamil)"].(string)
 		deityNameTelugu := record["Title (Telugu)"].(string)
+		deityNameGujarati := record["Title (Gujarati)"].(string)
 
 		deityUuid := record["UUID"].(string)
 		if strings.TrimSpace(deityUuid) == "" {
@@ -118,6 +119,7 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		descriptionMarathi, ok := record["Description (Marathi)"].(string)
 		descriptionTamil, ok := record["Description (Tamil)"].(string)
 		descriptionTelugu, ok := record["Description (Telugu)"].(string)
+		descriptionGujarati, ok := record["Description (Gujarati)"].(string)
 		deity := entity.DeityDocument{
 			TmpId: tmpId,
 			Id:    deityUuid,
@@ -128,6 +130,7 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 				"mr":      deityNameMarathi,
 				"ta":      deityNameTamil,
 				"te":      deityNameTelugu,
+				"gu":      deityNameGujarati,
 			},
 			Slug:    strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_")),
 			Aliases: util.GetSplittedString(aliases),
@@ -138,6 +141,7 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 				"mr":      descriptionMarathi,
 				"ta":      descriptionTamil,
 				"te":      descriptionTelugu,
+				"gu":      descriptionGujarati,
 			},
 			UIInfo: entity.DeityUIInfo{
 				DefaultImage:    defaultImage,
