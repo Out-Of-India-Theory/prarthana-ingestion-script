@@ -68,29 +68,31 @@ func (s *ShlokIngestionService) ShlokIngestion(ctx context.Context, startID, end
 		}
 
 		for _, lang := range langs {
-			tmpLang := lang
-			if lang == "english" {
-				tmpLang = "default"
-			}
-			value, ok1 := record[fmt.Sprintf("translation_%s", tmpLang)].(string)
-			if !ok1 {
-				fmt.Println("no text present for language", tmpLang)
+			value, exists := record[fmt.Sprintf("translation_%s", lang)].(string)
+			if !exists || value == "" {
+				log.Printf("Warning: Missing translation for language '%s' in record %d\n", lang, i+1)
 				continue
 			}
-			shlok.Explanation[tmpLang] = value
+
+			if lang == "english" {
+				shlok.Explanation["default"] = value // English is mapped to default
+			} else {
+				shlok.Explanation[lang] = value
+			}
 		}
 
 		for _, lang := range langs {
-			tmpLang := lang
-			if lang == "english" {
-				tmpLang = "default"
-			}
-			value, ok1 := record[fmt.Sprintf("text_%s", tmpLang)].(string)
-			if !ok1 {
-				fmt.Println("no text present for language", tmpLang)
+			value, exists := record[fmt.Sprintf("text_%s", lang)].(string)
+			if !exists || value == "" {
+				log.Printf("Warning: Missing shlok for language '%s' in record %d\n", lang, i+1)
 				continue
 			}
-			shlok.Shlok[tmpLang] = value
+
+			if lang == "sanskrit" {
+				shlok.Shlok["default"] = value // Sanskrit is mapped to default
+			} else {
+				shlok.Shlok[lang] = value
+			}
 		}
 		shloks = append(shloks, shlok)
 	}
