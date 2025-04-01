@@ -26,9 +26,8 @@ func registerRoutes(ctx context.Context, app *app.App, service facade.Service, c
 		prarthanaIngestionV1.POST("/prarthanas", am.ZohoAuthMiddleware(), prarthanaIngestionController.PrarthanaIngestion)
 		prarthanaIngestionV1.POST("/deities", am.ZohoAuthMiddleware(), prarthanaIngestionController.DeityIngestion)
 	}
-	app.Engine.Static("/static", "./static")
-
-	app.Engine.GET("/index.html", func(c *gin.Context) {
-		c.File("./static/index.html")
+	app.Engine.LoadHTMLGlob("ingestion/*.html")
+	app.Engine.GET("/ingestion/prarthana.html", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", configuration.UIConfig)
 	})
 }

@@ -2,17 +2,17 @@ package entity
 
 type Chapter struct {
 	Order         int               `bson:"order"`
-	Timestamp     string            `json:"timestamp"`
-	Duration      string            `json:"duration" `
-	Title         map[string]string `json:"title" `
-	StotraIds     []string          `json:"stotra_ids"`
-	DurationInSec int               `json:"-"`
+	Timestamp     string            `bson:"timestamp"`
+	Duration      string            `bson:"duration" `
+	Title         map[string]string `bson:"title" `
+	StotraIds     []string          `bson:"stotra_ids"`
+	DurationInSec int               `bson:"-"`
 }
 
 type Variant struct {
-	Duration  string    `json:"duration"`
-	Chapters  []Chapter `json:"chapters"`
-	IsDefault bool      `json:"is_default"`
+	Duration  string    `bson:"duration" json:"duration"`
+	Chapters  []Chapter `bson:"chapters" json:"chapters"`
+	IsDefault bool      `bson:"is_default" json:"is_default"`
 }
 
 type Prarthana struct {

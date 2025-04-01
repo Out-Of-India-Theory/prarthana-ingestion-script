@@ -5,7 +5,7 @@
     "PrometheusPort": "8085",
     "PrometheusEnabled": false,
     "NewRelicEnabled": true,
-    "AppName": "prarthana-automated-script",
+    "AppName": "prarthana-ingestion-script",
     "NewRelicLicense": "XXX"
   },
   "MongoConfig": {
@@ -22,5 +22,8 @@
     "tokenurl": "https://accounts.zoho.in/oauth/v2/token",
     "refreshtoken": "XXX",
     "sheetid": "XXX"
+  },
+  "UIConfig": {
+    "BackendHost": "http://localhost:8080"
   }
 }
