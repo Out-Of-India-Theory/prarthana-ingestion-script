@@ -105,6 +105,28 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		if !util.UrlExists(backgroundImage) {
 			return nil, fmt.Errorf("deity background image does not exist: %s", backgroundImage)
 		}
+		var heroImageAlbum []entity.HeroImageAlbum
+
+		if heroImageCountStr, ok := record["Hero Image Count"].(string); ok && heroImageCountStr != "" {
+			if heroImageCount, err := strconv.Atoi(heroImageCountStr); err == nil && heroImageCount > 0 {
+				for i := 0; i < heroImageCount; i++ {
+					imageIndex := ""
+					if i > 0 {
+						imageIndex = strconv.Itoa(i)
+					}
+					heroImageAlbum = append(heroImageAlbum, entity.HeroImageAlbum{
+						FullImage:      fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", record["slug"], imageIndex),
+						ThumbnailImage: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", record["slug"], imageIndex),
+						ShareImage:     fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/share_image/%s%s.png", record["slug"], imageIndex),
+					})
+				}
+			}
+		}
+		var deityOfTheDay string
+		if dodFlag, ok := record["DOD Flag"].(bool); ok && dodFlag {
+			deityOfTheDay = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/dod_image/%s.png", record["slug"])
+		}
+
 		aliases, ok := record["Also known as"].(string)
 		if !ok {
 			aliases = ""
@@ -156,6 +178,8 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 			UIInfo: entity.DeityUIInfo{
 				DefaultImage:    defaultImage,
 				BackgroundImage: backgroundImage,
+				HeroImageAlbum:  heroImageAlbum,
+				DeityOfTheDay:   deityOfTheDay,
 			},
 			FestivalIds: festivalIds,
 		}
