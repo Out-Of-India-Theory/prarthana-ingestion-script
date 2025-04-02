@@ -151,6 +151,36 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		descriptionTamil, ok := record["Description (Tamil)"].(string)
 		descriptionTelugu, ok := record["Description (Telugu)"].(string)
 		descriptionGujarati, ok := record["Description (Gujarati)"].(string)
+		aliasesV1Default, ok := record["Aliases_v1 (Default)"].(string)
+		aliasesV1Hindi, ok := record["Aliases_v1 (Hindi)"].(string)
+		aliasesV1Kannada, ok := record["Aliases_v1 (Kannada)"].(string)
+		aliasesV1Marathi, ok := record["Aliases_v1 (Marathi)"].(string)
+		aliasesV1Tamil, ok := record["Aliases_v1 (Tamil)"].(string)
+		aliasesV1Telugu, ok := record["Aliases_v1 (Telugu)"].(string)
+		aliasesV1Gujarati, ok := record["Aliases_v1 (Gujarati)"].(string)
+		aliasesV1 := make(map[string][]string)
+
+		if aliasesV1Default != "" {
+			aliasesV1["default"] = util.GetSplittedString(aliasesV1Default)
+		}
+		if aliasesV1Hindi != "" {
+			aliasesV1["hi"] = util.GetSplittedString(aliasesV1Hindi)
+		}
+		if aliasesV1Kannada != "" {
+			aliasesV1["kn"] = util.GetSplittedString(aliasesV1Kannada)
+		}
+		if aliasesV1Marathi != "" {
+			aliasesV1["mr"] = util.GetSplittedString(aliasesV1Marathi)
+		}
+		if aliasesV1Tamil != "" {
+			aliasesV1["ta"] = util.GetSplittedString(aliasesV1Tamil)
+		}
+		if aliasesV1Telugu != "" {
+			aliasesV1["te"] = util.GetSplittedString(aliasesV1Telugu)
+		}
+		if aliasesV1Gujarati != "" {
+			aliasesV1["gu"] = util.GetSplittedString(aliasesV1Gujarati)
+		}
 		deity := entity.DeityDocument{
 			TmpId: tmpId,
 			Id:    deityUuid,
@@ -163,9 +193,10 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 				"te":      deityNameTelugu,
 				"gu":      deityNameGujarati,
 			},
-			Region:  regions,
-			Slug:    strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_")),
-			Aliases: util.GetSplittedString(aliases),
+			Region:    regions,
+			Slug:      strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_")),
+			Aliases:   util.GetSplittedString(aliases),
+			AliasesV1: aliasesV1,
 			Description: map[string]string{
 				"default": descriptionDefault,
 				"hi":      descriptionHindi,
