@@ -83,6 +83,7 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		deityNameMarathi := record["Title (Marathi)"].(string)
 		deityNameTamil := record["Title (Tamil)"].(string)
 		deityNameTelugu := record["Title (Telugu)"].(string)
+		deityNameGujarati := record["Title (Gujarati)"].(string)
 
 		deityUuid := record["UUID"].(string)
 		if strings.TrimSpace(deityUuid) == "" {
@@ -108,6 +109,16 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		if !ok {
 			aliases = ""
 		}
+		festivalIdsStr, ok := record["Festival Ids"].(string)
+		festivalIds := []string{}
+		if ok && len(festivalIdsStr) != 0 {
+			festivalIds = util.GetSplittedString(festivalIdsStr)
+		}
+		regionsStr, ok := record["Region"].(string)
+		regions := []string{}
+		if ok && len(regionsStr) != 0 {
+			regions = util.GetSplittedString(regionsStr)
+		}
 		descriptionDefault, ok := record["Description (Default)"].(string)
 		if !ok {
 			return nil, fmt.Errorf("description unavailable for row : %d", id)
@@ -117,6 +128,7 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		descriptionMarathi, ok := record["Description (Marathi)"].(string)
 		descriptionTamil, ok := record["Description (Tamil)"].(string)
 		descriptionTelugu, ok := record["Description (Telugu)"].(string)
+		descriptionGujarati, ok := record["Description (Gujarati)"].(string)
 		deity := entity.DeityDocument{
 			TmpId: tmpId,
 			Id:    deityUuid,
@@ -127,7 +139,9 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 				"mr":      deityNameMarathi,
 				"ta":      deityNameTamil,
 				"te":      deityNameTelugu,
+				"gu":      deityNameGujarati,
 			},
+			Region:  regions,
 			Slug:    strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_")),
 			Aliases: util.GetSplittedString(aliases),
 			Description: map[string]string{
@@ -137,11 +151,13 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 				"mr":      descriptionMarathi,
 				"ta":      descriptionTamil,
 				"te":      descriptionTelugu,
+				"gu":      descriptionGujarati,
 			},
 			UIInfo: entity.DeityUIInfo{
 				DefaultImage:    defaultImage,
 				BackgroundImage: backgroundImage,
 			},
+			FestivalIds: festivalIds,
 		}
 		deityIdMap[tmpId] = deity.Id
 		deities = append(deities, deity)

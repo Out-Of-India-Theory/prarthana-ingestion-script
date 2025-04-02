@@ -196,6 +196,7 @@ func (s *StotraIngestionService) StotraIngestion(ctx context.Context, startID, e
 				nameMarathi, ok := record["Name (Optional) (Marathi)"].(string)
 				nameTamil, ok := record["Name (Optional) (Tamil)"].(string)
 				nameTelugu, ok := record["Name (Optional) (Telugu)"].(string)
+				nameGujarati, ok := record["Name (Optional) (Gujarati)"].(string)
 
 				baseFilename := strings.ToLower(util.SanitizeString(nameDefault))
 				//strings.ToLower(strings.ReplaceAll(strings.TrimSuffix(name, "|"), " ", "_"))
@@ -258,6 +259,7 @@ func (s *StotraIngestionService) StotraIngestion(ctx context.Context, startID, e
 						"mr":      nameMarathi,
 						"ta":      nameTamil,
 						"te":      nameTelugu,
+						"gu":      nameGujarati,
 					},
 					ShlokIds:               util.GetSplittedString(shlokIds),
 					Duration:               durationStr,
