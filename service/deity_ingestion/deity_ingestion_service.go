@@ -39,11 +39,11 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 	var err error
 	_, deityToPrarthanaMap, err := s.preparePrarthanaToDeityMap(ctx)
 	if err != nil {
-		log.Fatalf("Error generating TmpId to ID map: %v", err)
+		log.Fatalf("Error generating Prarthana TmpId to Deity ID map: %v", err)
 	}
 	prarthanaIdMap, err := s.prarthanaMongoRepository.GeneratePrarthanaTmpIdToIdMap(ctx)
 	if err != nil {
-		log.Fatalf("Error generating TmpId to ID map: %v", err)
+		log.Fatalf("Error generating Prarthana TmpId to Prarthana ID map: %v", err)
 	}
 	var response entity.ShlokaSheetResponse
 	err = s.zohoService.GetSheetData(ctx, "deities", &response)
@@ -84,6 +84,11 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		deityNameTamil := record["Title (Tamil)"].(string)
 		deityNameTelugu := record["Title (Telugu)"].(string)
 		deityNameGujarati := record["Title (Gujarati)"].(string)
+		deityNameAssamese := record["Title (Assamese)"].(string)
+		deityNamePunjabi := record["Title (Punjabi)"].(string)
+		deityNameMalayalam := record["Title (Malayalam)"].(string)
+		deityNameOdia := record["Title (Odia)"].(string)
+		deityNameBengali := record["Title (Bengali)"].(string)
 
 		deityUuid := record["UUID"].(string)
 		if strings.TrimSpace(deityUuid) == "" {
@@ -105,26 +110,26 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		if !util.UrlExists(backgroundImage) {
 			return nil, fmt.Errorf("deity background image does not exist: %s", backgroundImage)
 		}
+		formattedtitle := strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_"))
 		var heroImageAlbum []entity.HeroImageAlbum
-
-		if heroImageCountStr, ok := record["Hero Image Count"].(string); ok && heroImageCountStr != "" {
-			if heroImageCount, err := strconv.Atoi(heroImageCountStr); err == nil && heroImageCount > 0 {
-				for i := 0; i < heroImageCount; i++ {
-					imageIndex := ""
-					if i > 0 {
-						imageIndex = strconv.Itoa(i)
-					}
-					heroImageAlbum = append(heroImageAlbum, entity.HeroImageAlbum{
-						FullImage:      fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", record["slug"], imageIndex),
-						ThumbnailImage: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", record["slug"], imageIndex),
-						ShareImage:     fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/share_image/%s%s.png", record["slug"], imageIndex),
-					})
+		heroImageCount, ok := record["Hero Image Count"].(float64)
+		if ok && heroImageCount > 0 {
+			for i := 0; i < int(heroImageCount); i++ { // Convert float64 to int directly
+				imageIndex := ""
+				if i > 0 {
+					imageIndex = strconv.Itoa(i)
 				}
+				heroImageAlbum = append(heroImageAlbum, entity.HeroImageAlbum{
+					FullImage:      fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex),
+					ThumbnailImage: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex),
+					ShareImage:     fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/share_image/%s%s.png", formattedtitle, imageIndex),
+				})
 			}
 		}
+
 		var deityOfTheDay string
 		if dodFlag, ok := record["DOD Flag"].(bool); ok && dodFlag {
-			deityOfTheDay = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/dod_image/%s.png", record["slug"])
+			deityOfTheDay = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/dod_image/%s.png", formattedtitle)
 		}
 
 		aliases, ok := record["Also known as"].(string)
@@ -192,6 +197,11 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 				"ta":      deityNameTamil,
 				"te":      deityNameTelugu,
 				"gu":      deityNameGujarati,
+				"as":      deityNameAssamese,
+				"pa":      deityNamePunjabi,
+				"bn":      deityNameBengali,
+				"od":      deityNameOdia,
+				"ml":      deityNameMalayalam,
 			},
 			Region:    regions,
 			Slug:      strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_")),

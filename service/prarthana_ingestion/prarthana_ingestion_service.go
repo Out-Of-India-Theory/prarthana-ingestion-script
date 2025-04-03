@@ -181,7 +181,7 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		prarthana.UiInfo = entity.PrarthanaUIInfo{
 			AlbumArt:        fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt),
 			DefaultImageUrl: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt),
-			TemplateNumber:  fmt.Sprintf("template_%s", templateNumber),
+			TemplateNumber:  fmt.Sprintf("template_%v", templateNumber),
 		}
 
 		prarthana.AvailableLanguages = []entity.KeyValue{
@@ -291,7 +291,7 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 		//chapterIds := util.GetSplittedString(record[fieldMap["Adhyaya ID (Comma separated - Ordered)"]])
 		chapterIds := util.GetSplittedString(fmt.Sprintf("%v", record["Adhyaya ID (Comma separated - Ordered)"]))
 		if len(chapterIds) == 0 {
-			return nil, errors.New("no stotra ID")
+			return nil, errors.New("no chapter ID")
 		}
 		chapters := make([]entity.Chapter, 0)
 		for _, id := range chapterIds {
