@@ -39,11 +39,11 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 	var err error
 	_, deityToPrarthanaMap, err := s.preparePrarthanaToDeityMap(ctx)
 	if err != nil {
-		log.Fatalf("Error generating TmpId to ID map: %v", err)
+		log.Fatalf("Error generating Prarthana TmpId to Deity ID map: %v", err)
 	}
 	prarthanaIdMap, err := s.prarthanaMongoRepository.GeneratePrarthanaTmpIdToIdMap(ctx)
 	if err != nil {
-		log.Fatalf("Error generating TmpId to ID map: %v", err)
+		log.Fatalf("Error generating Prarthana TmpId to Prarthana ID map: %v", err)
 	}
 	var response entity.ShlokaSheetResponse
 	err = s.zohoService.GetSheetData(ctx, "deities", &response)
@@ -84,6 +84,11 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		deityNameTamil := record["Title (Tamil)"].(string)
 		deityNameTelugu := record["Title (Telugu)"].(string)
 		deityNameGujarati := record["Title (Gujarati)"].(string)
+		deityNameAssamese := record["Title (Assamese)"].(string)
+		deityNamePunjabi := record["Title (Punjabi)"].(string)
+		deityNameMalayalam := record["Title (Malayalam)"].(string)
+		deityNameOdia := record["Title (Odia)"].(string)
+		deityNameBengali := record["Title (Bengali)"].(string)
 
 		deityUuid := record["UUID"].(string)
 		if strings.TrimSpace(deityUuid) == "" {
@@ -93,11 +98,10 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		if val, found := tmpIdToDeityIdMap[tmpId]; found {
 			deityUuid = val
 		}
-		deityImageNameStr, ok := record["Deity Image"].(string)
+		deityImageName, ok := record["Deity Image"].(string)
 		if !ok {
 			return nil, errors.New("Invalid Deity Image")
 		}
-		deityImageName := strings.ToLower(util.SanitizeString(deityImageNameStr))
 		defaultImage := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/list-image/%s.png", deityImageName)
 		if !util.UrlExists(defaultImage) {
 			return nil, fmt.Errorf("deity image does not exist: %s", defaultImage)
@@ -106,9 +110,41 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		if !util.UrlExists(backgroundImage) {
 			return nil, fmt.Errorf("deity background image does not exist: %s", backgroundImage)
 		}
+		formattedtitle := strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_"))
+		var heroImageAlbum []entity.HeroImageAlbum
+		heroImageCount, ok := record["Hero Image Count"].(float64)
+		if ok && heroImageCount > 0 {
+			for i := 0; i < int(heroImageCount); i++ { // Convert float64 to int directly
+				imageIndex := ""
+				if i > 0 {
+					imageIndex = strconv.Itoa(i)
+				}
+				heroImageAlbum = append(heroImageAlbum, entity.HeroImageAlbum{
+					FullImage:      fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex),
+					ThumbnailImage: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex),
+					ShareImage:     fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/share_image/%s%s.png", formattedtitle, imageIndex),
+				})
+			}
+		}
+
+		var deityOfTheDay string
+		if dodFlag, ok := record["DOD Flag"].(bool); ok && dodFlag {
+			deityOfTheDay = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/dod_image/%s.png", formattedtitle)
+		}
+
 		aliases, ok := record["Also known as"].(string)
 		if !ok {
 			aliases = ""
+		}
+		festivalIdsStr, ok := record["Festival Ids"].(string)
+		festivalIds := []string{}
+		if ok && len(festivalIdsStr) != 0 {
+			festivalIds = util.GetSplittedString(festivalIdsStr)
+		}
+		regionsStr, ok := record["Region"].(string)
+		regions := []string{}
+		if ok && len(regionsStr) != 0 {
+			regions = util.GetSplittedString(regionsStr)
 		}
 		descriptionDefault, ok := record["Description (Default)"].(string)
 		if !ok {
@@ -120,6 +156,36 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		descriptionTamil, ok := record["Description (Tamil)"].(string)
 		descriptionTelugu, ok := record["Description (Telugu)"].(string)
 		descriptionGujarati, ok := record["Description (Gujarati)"].(string)
+		aliasesV1Default, ok := record["Aliases_v1 (Default)"].(string)
+		aliasesV1Hindi, ok := record["Aliases_v1 (Hindi)"].(string)
+		aliasesV1Kannada, ok := record["Aliases_v1 (Kannada)"].(string)
+		aliasesV1Marathi, ok := record["Aliases_v1 (Marathi)"].(string)
+		aliasesV1Tamil, ok := record["Aliases_v1 (Tamil)"].(string)
+		aliasesV1Telugu, ok := record["Aliases_v1 (Telugu)"].(string)
+		aliasesV1Gujarati, ok := record["Aliases_v1 (Gujarati)"].(string)
+		aliasesV1 := make(map[string][]string)
+
+		if aliasesV1Default != "" {
+			aliasesV1["default"] = util.GetSplittedString(aliasesV1Default)
+		}
+		if aliasesV1Hindi != "" {
+			aliasesV1["hi"] = util.GetSplittedString(aliasesV1Hindi)
+		}
+		if aliasesV1Kannada != "" {
+			aliasesV1["kn"] = util.GetSplittedString(aliasesV1Kannada)
+		}
+		if aliasesV1Marathi != "" {
+			aliasesV1["mr"] = util.GetSplittedString(aliasesV1Marathi)
+		}
+		if aliasesV1Tamil != "" {
+			aliasesV1["ta"] = util.GetSplittedString(aliasesV1Tamil)
+		}
+		if aliasesV1Telugu != "" {
+			aliasesV1["te"] = util.GetSplittedString(aliasesV1Telugu)
+		}
+		if aliasesV1Gujarati != "" {
+			aliasesV1["gu"] = util.GetSplittedString(aliasesV1Gujarati)
+		}
 		deity := entity.DeityDocument{
 			TmpId: tmpId,
 			Id:    deityUuid,
@@ -131,9 +197,16 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 				"ta":      deityNameTamil,
 				"te":      deityNameTelugu,
 				"gu":      deityNameGujarati,
+				"as":      deityNameAssamese,
+				"pa":      deityNamePunjabi,
+				"bn":      deityNameBengali,
+				"od":      deityNameOdia,
+				"ml":      deityNameMalayalam,
 			},
-			Slug:    strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_")),
-			Aliases: util.GetSplittedString(aliases),
+			Region:    regions,
+			Slug:      strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_")),
+			Aliases:   util.GetSplittedString(aliases),
+			AliasesV1: aliasesV1,
 			Description: map[string]string{
 				"default": descriptionDefault,
 				"hi":      descriptionHindi,
@@ -146,7 +219,10 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 			UIInfo: entity.DeityUIInfo{
 				DefaultImage:    defaultImage,
 				BackgroundImage: backgroundImage,
+				HeroImageAlbum:  heroImageAlbum,
+				DeityOfTheDay:   deityOfTheDay,
 			},
+			FestivalIds: festivalIds,
 		}
 		deityIdMap[tmpId] = deity.Id
 		deities = append(deities, deity)
