@@ -30,6 +30,7 @@ type Prarthana struct {
 	DeityIds           []string            `bson:"deity_ids"`
 	UiInfo             PrarthanaUIInfo     `bson:"ui_info"`
 	AvailableLanguages []KeyValue          `bson:"available_languages"`
+	IntentBased        bool                `bson:"intent_based"`
 }
 
 type AudioInfo struct {
