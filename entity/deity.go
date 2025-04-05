@@ -1,7 +1,7 @@
 package entity
 
 type DeityDocument struct {
-	TmpId          string
+	TmpId          string            `bson:"TmpId"`
 	Id             string            `bson:"_id" json:"_id"`
 	Order          int               `json:"order" bson:"order"`
 	Title          map[string]string `json:"title" bson:"title"`
@@ -15,5 +15,5 @@ type DeityDocument struct {
 
 type DeityUIInfo struct {
 	DefaultImage    string `json:"default_image" bson:"default_image"`
-	BackgroundImage string `json:"background_image"`
+	BackgroundImage string `json:"background_image" bson:"background_image"`
 }

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prarthana Ingestion</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ebedbb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            color: #1c5e35;
+            margin: 20px 0;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            width: 90%;
+            max-width: 1000px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 48%;
+        }
+        button {
+            width: 100%;
+            max-width: 400px;
+            margin: 10px 0;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            background-color: #1c5e35;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        button:hover {
+            background-color: #147a4e;
+            transform: scale(1.05);
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .response-container {
+            width: 80%;
+            max-width: 800px;
+            margin-top: 20px;
+            height:10px;
+        }
+        textarea {
+            width: 100%;
+            height: 80px;
+            font-size: 14px;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 10px;
+            resize: none;
+            background-color: #e9ecef;
+        }
+        .input-group {
+            width: 50%;
+            max-width: 800px;
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+        }
+        h2 {
+            color: #008550;
+            text-align: center;
+            margin: 20px 0;
+        }
+        #fileInput {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+<h1>Prarthana Data Ingestion</h1>
+
+<div class="input-group">
+    <label for="start_id">Start ID:</label>
+    <input type="number" id="start_id" placeholder="Enter start ID for shlok/stotra">
+</div>
+
+<div class="input-group">
+    <label for="end_id">End ID:</label>
+    <input type="number" id="end_id" placeholder="Enter end ID for shlok/stotra">
+</div>
+
+<div class="container">
+    <div class="button-group">
+        <button onclick="triggerFileInput('audio')">Upload Audio Files</button>
+        <input id="fileInputAudio" type="file" multiple style="display:none">
+        <textarea id="responseAudio" readonly></textarea>
+
+        <button onclick="triggerPrarthanaFileInput('images')">Upload Prarthana Images</button>
+        <input id="fileAlbumArt" type="file" multiple style="display:none">
+        <textarea id="responseAlbumArt" readonly></textarea>
+
+        <button onclick="triggerDeityListFileInput('images')">Upload Deity List Images</button>
+        <input id="fileDeityListImage" type="file" multiple style="display:none">
+        <textarea id="responseDeityList" readonly></textarea>
+
+        <button onclick="triggerDeityFileInput('images')">Upload Deity Card Images</button>
+        <input id="fileDeityCardImage" type="file" multiple style="display:none">
+        <textarea id="responseDeityCard" readonly></textarea> </div>
+
+    <div class="button-group">
+        <button id="btn1" onclick="callApi(`/prarthana_script/v1/shloks`)">1. Ingest Shloks</button>
+        <button id="btn2" onclick="callApi('/prarthana_script/v1/stotras')">2. Ingest Stotras</button>
+        <button id="btn3" onclick="callApi('/prarthana_script/v1/prarthanas/')">3. Ingest Prarthanas</button>
+        <button id="btn4" onclick="callApi('/prarthana_script/v1/deities')">4. Ingest Deities</button>
+    </div>
+</div>
+
+<div class="response-container">
+    <h2>Response</h2>
+    <textarea id="response" readonly></textarea>
+</div>
+
+<script>
+    async function callApi(uri) {
+        const backendHost = "{{ .BackendHost }}";
+        const startIdInput = document.getElementById("start_id").value;
+        const endIdInput = document.getElementById("end_id").value;
+
+        // Convert inputs to integers
+        const startId = parseInt(startIdInput, 10);
+        const endId = parseInt(endIdInput, 10);
+        const endpoint = `${backendHost}${uri}`
+        if (isNaN(startId) || isNaN(endId)) {
+            document.getElementById("response").value = "Please enter valid integers for Start ID and End ID.";
+            return;
+        }
+
+        const buttons = document.querySelectorAll("button");
+        buttons.forEach(button => button.disabled = true);
+
+        const requestBody = JSON.stringify({
+            start_id: startId,
+            end_id: endId
+        });
+
+        try {
+            document.getElementById("response").value = `Calling API: ${endpoint} with start_id=${startId} and end_id=${endId}...`;
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                const errorMessage = await response.text(); // Read the response body (if any) as text
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorMessage}`);
+            }
+
+            const data = await response.json();
+            document.getElementById("response").value = JSON.stringify(data, null, 2);
+        } catch (error) {
+            document.getElementById("response").value = `Error: ${error.message}`;
+        } finally {
+            buttons.forEach(button => button.disabled = false);
+        }
+    }
+
+    function triggerFileInput(buttonType) {
+        if (buttonType === 'audio') {
+            document.getElementById("fileInputAudio").click();
+        }
+    }
+
+    function triggerPrarthanaFileInput(buttonType) {
+        document.getElementById("fileAlbumArt").click();
+    }
+
+    function triggerDeityListFileInput(buttonType) {
+        document.getElementById("fileDeityListImage").click();
+    }
+
+    function triggerDeityFileInput(buttonType) {
+        document.getElementById("fileDeityCardImage").click();
+    }
+
+    document.getElementById("fileInputAudio").addEventListener("change", async function () {
+        const files = document.getElementById("fileInputAudio").files;
+        if (files.length === 0) {
+            document.getElementById("responseAudio").value = "No audio files selected.";
+            return;
+        }
+
+        const formData = new FormData();
+        const specialCharPattern = /[!@#$%^&*(),?":{}|<>]/; // Regex for special characters
+        const allowedExtensions = [".mp3", ".png", ".jpeg", ".jpg", ".wav"]; // Allowed extensions
+        let errorMessage = "";
+
+        for (const file of files) {
+            const fileName = file.name;
+            const extension = fileName.slice(fileName.lastIndexOf(".")).toLowerCase(); // Extract file extension
+            const nameWithoutExtension = fileName.slice(0, fileName.lastIndexOf("."));
+
+            // Check if the extension is allowed
+            if (!allowedExtensions.includes(extension)) {
+                errorMessage += `File "${fileName}" has an unsupported file extension.\n`;
+                continue;
+            }
+
+            // Check for special characters in the name (excluding extension)
+            if (specialCharPattern.test(nameWithoutExtension)) {
+                errorMessage += `File "${fileName}" has special characters in its name.\n`;
+            } else {
+                // Convert to lowercase, replace spaces with underscores, and append the extension
+                const newFileName = nameWithoutExtension
+                    .toLowerCase()
+                    .replace(/\s+/g, "_") + extension;
+                const renamedFile = new File([file], newFileName, { type: file.type });
+
+                formData.append("files", renamedFile);
+            }
+        }
+
+        if (errorMessage) {
+            document.getElementById("responseAudio").value = errorMessage;
+            return;
+        }
+
+        const apiUrl1 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/pvt_audio_folder";
+        const apiUrl2 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/audio_folder";
+
+        try {
+            document.getElementById("responseAudio").value = `Uploading ${files.length} audio file(s)...`;
+
+            const responses = await Promise.all([
+                fetch(apiUrl1, { method: 'POST', body: formData }),
+                fetch(apiUrl2, { method: 'POST', body: formData })
+            ]);
+
+            const results = await Promise.all(responses.map(res => res.json()));
+            document.getElementById("responseAudio").value =
+                `API 1 Response:\n${JSON.stringify(results[0], null, 2)}\n\nAPI 2 Response:\n${JSON.stringify(results[1], null, 2)}`;
+        } catch (error) {
+            document.getElementById("responseAudio").value = `Error: ${error.message}`;
+        }
+    });
+
+    document.getElementById("fileAlbumArt").addEventListener("change", async function () {
+        console.log("Hello")
+        const files = document.getElementById("fileAlbumArt").files;
+        if (files.length === 0) {
+            document.getElementById("responseAlbumArt").value = "No image files selected.";
+            return;
+        }
+
+        const formData = new FormData();
+        const specialCharPattern = /[!@#$%^&*(),?":{}|<>]/; // Regex for special characters
+        const allowedExtensions = [".mp3", ".png", ".jpeg", ".jpg", ".wav"]; // Allowed extensions
+        let errorMessage = "";
+
+        for (const file of files) {
+            const fileName = file.name;
+            const extension = fileName.slice(fileName.lastIndexOf(".")).toLowerCase(); // Extract file extension
+            const nameWithoutExtension = fileName.slice(0, fileName.lastIndexOf("."));
+
+            // Check if the extension is allowed
+            if (!allowedExtensions.includes(extension)) {
+                errorMessage += `File "${fileName}" has an unsupported file extension.\n`;
+                continue;
+            }
+
+            // Check for special characters in the name (excluding extension)
+            if (specialCharPattern.test(nameWithoutExtension)) {
+                errorMessage += `File "${fileName}" has special characters in its name.\n`;
+            } else {
+                // Convert to lowercase, replace spaces with underscores, and append the extension
+                const newFileName = nameWithoutExtension
+                    .toLowerCase()
+                    .replace(/\s+/g, "_") + extension;
+                const renamedFile = new File([file], newFileName, { type: file.type });
+
+                formData.append("files", renamedFile);
+            }
+        }
+
+        if (errorMessage) {
+            document.getElementById("responseAudio").value = errorMessage;
+            return;
+        }
+
+        const apiUrl1 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/album_art";
+        const apiUrl2 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/pvt_album_art";
+
+        try {
+            document.getElementById("responseAlbumArt").value = `Uploading ${files.length} image file(s)...`;
+
+            const responses = await Promise.all([
+                fetch(apiUrl1, { method: 'POST', body: formData }),
+                fetch(apiUrl2, { method: 'POST', body: formData })
+            ]);
+
+            const results = await Promise.all(responses.map(res => res.json()));
+            document.getElementById("responseAlbumArt").value =
+                `API 1 Response:\n${JSON.stringify(results[0], null, 2)}\n\nAPI 2 Response:\n${JSON.stringify(results[1], null, 2)}`;
+        } catch (error) {
+            document.getElementById("responseAlbumArt").value = `Error: ${error.message}`;
+        }
+    });
+
+
+    document.getElementById("fileDeityListImage").addEventListener("change", async function () {
+        console.log("Hello 1")
+        const files = document.getElementById("fileDeityListImage").files;
+        if (files.length === 0) {
+            document.getElementById("responseDeityList").value = "No image files selected.";
+            return;
+        }
+
+        const formData = new FormData();
+        const specialCharPattern = /[!@#$%^&*(),?":{}|<>]/; // Regex for special characters
+        const allowedExtensions = [".mp3", ".png", ".jpeg", ".jpg", ".wav"]; // Allowed extensions
+        let errorMessage = "";
+
+        for (const file of files) {
+            const fileName = file.name;
+            const extension = fileName.slice(fileName.lastIndexOf(".")).toLowerCase(); // Extract file extension
+            const nameWithoutExtension = fileName.slice(0, fileName.lastIndexOf("."));
+
+            // Check if the extension is allowed
+            if (!allowedExtensions.includes(extension)) {
+                errorMessage += `File "${fileName}" has an unsupported file extension.\n`;
+                continue;
+            }
+
+            // Check for special characters in the name (excluding extension)
+            if (specialCharPattern.test(nameWithoutExtension)) {
+                errorMessage += `File "${fileName}" has special characters in its name.\n`;
+            } else {
+                // Convert to lowercase, replace spaces with underscores, and append the extension
+                const newFileName = nameWithoutExtension
+                    .toLowerCase()
+                    .replace(/\s+/g, "_") + extension;
+                const renamedFile = new File([file], newFileName, { type: file.type });
+
+                formData.append("files", renamedFile);
+            }
+        }
+
+        if (errorMessage) {
+            document.getElementById("responseAudio").value = errorMessage;
+            return;
+        }
+
+        const apiUrl1 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/list_deity_image";
+        const apiUrl2 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/pvt_list_deity_image";
+
+        try {
+            document.getElementById("responseDeityList").value = `Uploading ${files.length} image file(s)...`;
+
+            const responses = await Promise.all([
+                fetch(apiUrl1, { method: 'POST', body: formData }),
+                fetch(apiUrl2, { method: 'POST', body: formData })
+            ]);
+
+            const results = await Promise.all(responses.map(res => res.json()));
+            document.getElementById("responseDeityList").value =
+                `API 1 Response:\n${JSON.stringify(results[0], null, 2)}\n\nAPI 2 Response:\n${JSON.stringify(results[1], null, 2)}`;
+        } catch (error) {
+            document.getElementById("responseDeityList").value = `Error: ${error.message}`;
+        }
+    });
+
+    document.getElementById("fileDeityCardImage").addEventListener("change", async function () {
+        const files = document.getElementById("fileDeityCardImage").files;
+        if (files.length === 0) {
+            document.getElementById("responseDeityCard").value = "No image files selected.";
+            return;
+        }
+
+        const formData = new FormData();
+        const specialCharPattern = /[!@#$%^&*(),?":{}|<>]/; // Regex for special characters
+        const allowedExtensions = [".mp3", ".png", ".jpeg", ".jpg", ".wav"]; // Allowed extensions
+        let errorMessage = "";
+
+        for (const file of files) {
+            const fileName = file.name;
+            const extension = fileName.slice(fileName.lastIndexOf(".")).toLowerCase(); // Extract file extension
+            const nameWithoutExtension = fileName.slice(0, fileName.lastIndexOf("."));
+
+            // Check if the extension is allowed
+            if (!allowedExtensions.includes(extension)) {
+                errorMessage += `File "${fileName}" has an unsupported file extension.\n`;
+                continue;
+            }
+
+            // Check for special characters in the name (excluding extension)
+            if (specialCharPattern.test(nameWithoutExtension)) {
+                errorMessage += `File "${fileName}" has special characters in its name.\n`;
+            } else {
+                // Convert to lowercase, replace spaces with underscores, and append the extension
+                const newFileName = nameWithoutExtension
+                    .toLowerCase()
+                    .replace(/\s+/g, "_") + extension;
+                const renamedFile = new File([file], newFileName, { type: file.type });
+
+                formData.append("files", renamedFile);
+            }
+        }
+
+        if (errorMessage) {
+            document.getElementById("responseAudio").value = errorMessage;
+            return;
+        }
+
+        const apiUrl1 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/bg_deity_image";
+        const apiUrl2 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/pvt_bg_deity_image";
+
+        try {
+            document.getElementById("responseDeityCard").value = `Uploading ${files.length} image file(s)...`;
+
+            const responses = await Promise.all([
+                fetch(apiUrl1, { method: 'POST', body: formData }),
+                fetch(apiUrl2, { method: 'POST', body: formData })
+            ]);
+
+            const results = await Promise.all(responses.map(res => res.json()));
+            document.getElementById("responseDeityCard").value =
+                `API 1 Response:\n${JSON.stringify(results[0], null, 2)}\n\nAPI 2 Response:\n${JSON.stringify(results[1], null, 2)}`;
+        } catch (error) {
+            document.getElementById("responseDeityCard").value = `Error: ${error.message}`;
+        }
+    });
+</script>
+</body>
+</html>

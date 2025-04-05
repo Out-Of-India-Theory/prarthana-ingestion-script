@@ -3,11 +3,13 @@ package prarthana_ingestion
 import (
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/entity"
-	mongoRepo "github.com/Out-Of-India-Theory/prarthana-automated-script/repository/mongo/prarthana_data"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/util"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
+	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"log"
@@ -21,145 +23,158 @@ import (
 type PrarthanaIngestionService struct {
 	logger                   *zap.Logger
 	prarthanaMongoRepository mongoRepo.MongoRepository
+	zohoService              zoho.Service
 }
 
 func InitPrathanaIngestionService(ctx context.Context,
 	prarthanaMongoRepository mongoRepo.MongoRepository,
+	zohoService zoho.Service,
 ) *PrarthanaIngestionService {
 	return &PrarthanaIngestionService{
 		logger:                   logging.WithContext(ctx),
 		prarthanaMongoRepository: prarthanaMongoRepository,
+		zohoService:              zohoService,
 	}
 }
 
-func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, prarthanaToDeityCsvFilePath string, adhyayaCsvFilePath string, variantCsvFilePath string, PrarthanaCsvFilePath string, startID, endID int) (map[string]string, error) {
-	deityIdMap, err := s.prarthanaMongoRepository.GenerateDeityTmpIdToIdMap(ctx)
-	if err != nil {
-		return nil, err
-	}
-	prarthanaToDeityMap, _ := PreparePrarthanaToDeityMap(prarthanaToDeityCsvFilePath)
+func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, startID, endID int) (map[string]string, error) {
 	stotraMap, err := s.prarthanaMongoRepository.GetAllStotras(ctx)
 	if err != nil {
 		return nil, err
 	}
-	chapterMap, err := prepareChapterMap(adhyayaCsvFilePath, stotraMap)
+	chapterMap, err := s.prepareChapterMap(ctx, stotraMap)
 	if err != nil {
 		log.Fatalf("Failed to prepare chapter map: %v", err)
 	}
 
-	variantMap, err := prepareVariantMap(variantCsvFilePath, chapterMap)
+	variantMap, err := s.prepareVariantMap(ctx, chapterMap)
 	if err != nil {
 		log.Fatalf("Failed to prepare chapter map: %v", err)
 	}
 
-	file, err := os.Open(PrarthanaCsvFilePath)
+	var response entity.ShlokaSheetResponse
+	err = s.zohoService.GetSheetData(ctx, "prarthanas", &response)
 	if err != nil {
-		return nil, fmt.Errorf("error opening file: %w", err)
+		return nil, err
 	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1
-
-	header, err := reader.Read()
-	if err != nil {
-		return nil, fmt.Errorf("error reading header: %w", err)
+	if len(response.Records) == 0 {
+		return nil, errors.New("no records found")
 	}
-
-	fieldMap := make(map[string]int)
-	for i, field := range header {
-		fieldMap[field] = i
-	}
-	records, err := reader.ReadAll()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, fmt.Errorf("Error: %w", err)
-	}
-	idTemplateMap, tmpIdToIdMap, err := s.prarthanaMongoRepository.GetTmpIdToPrarthanaIds(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	oldReversedPrarthanaIds := tmpIdToIdMap
 	prarthanaIdMap := make(map[string]string)
 	prarthanas := make([]entity.Prarthana, 0)
-	for i, record := range records {
-		if len(record) <= fieldMap["ID"] {
-			log.Printf("Skipping record %d: Missing ID field\n", i+1)
-			continue
+	for i, record := range response.Records {
+		fmt.Println("Processing record : ", i+1)
+		idf, ok := record["ID"].(float64)
+		if !ok {
+			return nil, errors.New("Invalid ID")
 		}
-		id, err := strconv.Atoi(record[fieldMap["ID"]])
-		if err != nil {
-			log.Printf("Skipping record %d: Invalid ID format\n", i+1)
-			continue
-		}
+		id := int(idf)
+
 		if id < startID || id > endID {
 			continue
 		}
 
-		if len(record) <= fieldMap["Name (Optional)"] {
-			log.Printf("Skipping record %d: Missing Name field\n", i+1)
-			continue
+		nameDefault, ok := record["Name (Mandatory) (Default)"].(string)
+		if !ok {
+			return nil, errors.New("Missing prarthana name")
 		}
-		deityIds := make([]string, 0)
-		name := record[fieldMap["Name (Mandatory)"]]
-		re := regexp.MustCompile(`[^a-zA-Z0-9\s]+`)
-		if re.MatchString(name) {
-			return nil, fmt.Errorf("the name '%s' contains special characters. Please remove them", name)
+		nameHindi, ok := record["Name (Mandatory) (Hindi)"].(string)
+		nameKannada, ok := record["Name (Mandatory) (Kannada)"].(string)
+		nameMarathi, ok := record["Name (Mandatory) (Marathi)"].(string)
+		nameTamil, ok := record["Name (Mandatory) (Tamil)"].(string)
+		nameTelugu, ok := record["Name (Mandatory) (Telugu)"].(string)
+
+		re := regexp.MustCompile(`[^a-zA-Z0-9\s\-\(\)]+`)
+		if re.MatchString(nameDefault) {
+			return nil, fmt.Errorf("the name '%s' contains special characters. Please remove them", nameDefault)
 		}
-		tmpId := record[fieldMap["ID"]]
-		if val, found := deityIdMap[prarthanaToDeityMap[tmpId]]; found {
-			deityIds = []string{val}
+		tmpId := strconv.Itoa(id)
+
+		extId, ok := record["UUID"].(string)
+		if !ok {
+			extId = uuid.NewString()
+			//return nil, errors.New("Missing UUID")
 		}
-		prarthanaUuid := uuid.NewString()
-		if val, found := oldReversedPrarthanaIds[tmpId]; found {
-			prarthanaUuid = val
+
+		albumArt, ok := record["Album Art"].(string)
+		if !ok {
+			return nil, errors.New("Missing prarthana album art")
 		}
-		templateNumber := "template_1"
-		if val, found := idTemplateMap[tmpId]; found {
-			templateNumber = val
-		}
-		fmt.Sprintf("%s", templateNumber)
-		audioURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.wav", strings.ToLower(strings.ReplaceAll(name, " ", "_")))
+		audioName := strings.ToLower(util.SanitizeString(nameDefault))
+
+		audioURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.wav", audioName)
+		audioURLMp3 := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.mp3", audioName)
 		if !util.UrlExists(audioURL) {
-			return nil, fmt.Errorf("audio URL does not exist: %s", audioURL)
+			if !util.UrlExists(audioURLMp3) {
+				return nil, fmt.Errorf("audio URL does not exist: %s", audioURL)
+			}
+			audioURL = audioURLMp3
 		}
-		albumArtURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", record[fieldMap["Album Art"]])
+
+		albumArtURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt)
 		if !util.UrlExists(albumArtURL) {
 			return nil, fmt.Errorf("album art URL does not exist: %s", albumArtURL)
 		}
 
 		studioRecorded := false
-		if record[fieldMap["Studio Recorded Audio Available or not?"]] == "yes" {
+		studioRecordedStr, ok := record["Studio Recorded(yes/no)"].(string)
+		if ok && studioRecordedStr == "yes" {
 			studioRecorded = true
-		} else {
-			studioRecorded = false
 		}
-		festivalIdsString := record[fieldMap["Festival Ids"]]
-		festivalIds := strings.Split(festivalIdsString, ",")
+		festivalIdsStr, ok := record["Festival Ids"].(string)
+		festivalIds := []string{}
+		if ok && len(festivalIdsStr) != 0 {
+			festivalIds = util.GetSplittedString(festivalIdsStr)
+		}
+
+		shortDescriptionDefault, ok := record["Short Description (Default)"].(string)
+		if !ok {
+			return nil, fmt.Errorf("Missing prarthana short description : %d", id)
+		}
+		shortDescriptionHindi, ok := record["Short Description (Hindi)"].(string)
+		shortDescriptionKannada, ok := record["Short Description (Kannada)"].(string)
+		shortDescriptionMarathi, ok := record["Short Description (Marathi)"].(string)
+		shortDescriptionTamil, ok := record["Short Description (Tamil)"].(string)
+		shortDescriptionTelugu, ok := record["Short Description (Telugu)"].(string)
+
+		//variantIds, ok := record["Prarthana Variant ID (Comma separated - Ordered)"].(string)
+		variantIds := fmt.Sprintf("%v", record["Prarthana Variant ID (Comma separated - Ordered)"])
 		prarthana := entity.Prarthana{
 			TmpId: tmpId,
-			Id:    prarthanaUuid,
+			Id:    extId,
 			Title: map[string]string{
-				"default": name,
+				"default": nameDefault,
+				"hi":      nameHindi,
+				"kn":      nameKannada,
+				"mr":      nameMarathi,
+				"ta":      nameTamil,
+				"te":      nameTelugu,
 			},
 			FestivalIds: festivalIds,
-			Days:        util.GetDaysFromTitle(name),
+			Days:        util.GetDaysFromTitle(nameDefault),
 			AudioInfo: entity.AudioInfo{AudioUrl: audioURL,
 				IsAudioAvailable: true,
 				IsStudioRecorded: studioRecorded},
-			Variants:      []entity.Variant{variantMap[record[fieldMap["Prarthana Variant ID (Comma separated - Ordered)"]]]},
-			Description:   map[string]string{"default": record[fieldMap["Short description"]]},
+			Variants:      []entity.Variant{variantMap[variantIds]},
+			Description:   map[string]string{"default": shortDescriptionDefault, "hi": shortDescriptionHindi, "kn": shortDescriptionKannada, "mr": shortDescriptionMarathi, "ta": shortDescriptionTamil, "te": shortDescriptionTelugu},
 			Importance:    map[string]string{},
 			Instruction:   map[string]string{},
 			ItemsRequired: map[string][]string{},
 		}
+		templateNumberS, ok := record["Template Number"].(string)
+		if !ok {
+			return nil, errors.New("Missing prarthana template number")
+		}
+		templateNumber, err := strconv.Atoi(templateNumberS)
+		if err != nil {
+			return nil, err
+		}
 		prarthana.UiInfo = entity.PrarthanaUIInfo{
-			AlbumArt:        fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", record[fieldMap["Album Art"]]),
-			DefaultImageUrl: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", record[fieldMap["Album Art"]]),
-			TemplateNumber:  fmt.Sprintf("template_%s", record[fieldMap["Template Number"]]),
+			AlbumArt:        fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt),
+			DefaultImageUrl: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt),
+			TemplateNumber:  fmt.Sprintf("template_%s", templateNumber),
 		}
 
-		prarthana.DeityIds = deityIds
 		prarthana.AvailableLanguages = []entity.KeyValue{
 			{"default", "Default (Sanskrit)"},
 			{"hindi", "हिंदी"},
@@ -176,38 +191,26 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, prar
 			{"punjabi", "ਪੰਜਾਬੀ"},
 		}
 		prarthanas = append(prarthanas, prarthana)
-		prarthanaIdMap[record[fieldMap["ID"]]] = prarthana.Id
+		prarthanaIdMap[tmpId] = prarthana.Id
 	}
 	return prarthanaIdMap, s.prarthanaMongoRepository.InsertManyPrarthanas(ctx, prarthanas)
 }
 
-func prepareChapterMap(AdhyayaCsvFilePath string, stotraMap map[string]entity.Stotra) (map[string]entity.Chapter, error) {
-	file, err := os.Open(AdhyayaCsvFilePath)
+func (s *PrarthanaIngestionService) prepareChapterMap(ctx context.Context, stotraMap map[string]entity.Stotra) (map[string]entity.Chapter, error) {
+	var response entity.ShlokaSheetResponse
+	err := s.zohoService.GetSheetData(ctx, "adhyaya", &response)
 	if err != nil {
-		return nil, fmt.Errorf("error opening file: %w", err)
+		return nil, err
 	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1
-
-	header, err := reader.Read()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, fmt.Errorf("error: %w", err)
-	}
-	fieldMap := make(map[string]int)
-	for i, field := range header {
-		fieldMap[field] = i
-	}
-	records, err := reader.ReadAll()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, fmt.Errorf("error reading records: %w", err)
+	if len(response.Records) == 0 {
+		return nil, errors.New("no records found")
 	}
 	chapterMap := make(map[string]entity.Chapter)
-	for _, record := range records {
-		stotraIds := util.GetSplittedString(record[fieldMap["Stotra ID (Comma separated - Ordered)"]])
+	for _, record := range response.Records {
+		stotraIds := util.GetSplittedString(fmt.Sprintf("%v", record["Stotra ID (Comma separated - Ordered)"]))
+		if len(stotraIds) == 0 {
+			return nil, errors.New("no stotra ID")
+		}
 		duration := 0
 		for _, id := range stotraIds {
 			if sto, ok := stotraMap[id]; ok {
@@ -216,49 +219,46 @@ func prepareChapterMap(AdhyayaCsvFilePath string, stotraMap map[string]entity.St
 		}
 		minutes := int(math.Max(1, math.Round((float64(duration) / float64(60)))))
 		durationStr := fmt.Sprintf("%dm", minutes)
+		name, ok := record["Name (Mandatory)"].(string)
+		if !ok {
+			return nil, errors.New("no name found")
+		}
+		id, ok := record["ID"].(float64)
+		if !ok {
+			return nil, errors.New("no ID found")
+		}
 		chapter := entity.Chapter{
 			Order:     1,
 			Timestamp: "1m",
 			Duration:  durationStr,
 			Title: map[string]string{
-				"default": record[fieldMap["Name (Mandatory)"]],
+				"default": name,
 			},
 			DurationInSec: duration,
 			StotraIds:     stotraIds,
 		}
-		chapterMap[record[fieldMap["ID"]]] = chapter
+		chapterMap[fmt.Sprintf("%d", int(id))] = chapter
 	}
 	return chapterMap, nil
 }
 
-func prepareVariantMap(variantCsvFilePath string, chapterMap map[string]entity.Chapter) (map[string]entity.Variant, error) {
-	file, err := os.Open(variantCsvFilePath)
+func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapterMap map[string]entity.Chapter) (map[string]entity.Variant, error) {
+	var response entity.ShlokaSheetResponse
+	err := s.zohoService.GetSheetData(ctx, "prarthana variant", &response)
 	if err != nil {
-		return nil, fmt.Errorf("error opening file: %w", err)
+		return nil, err
 	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1
-
-	header, err := reader.Read()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, fmt.Errorf("error reading records: %w", err)
-	}
-	fieldMap := make(map[string]int)
-	for i, field := range header {
-		fieldMap[field] = i
-	}
-	records, err := reader.ReadAll()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, fmt.Errorf("error: %w", err)
+	if len(response.Records) == 0 {
+		return nil, errors.New("no records found")
 	}
 	variantMap := make(map[string]entity.Variant)
-	for _, record := range records {
+	for _, record := range response.Records {
 		duration := 0
-		chapterIds := util.GetSplittedString(record[fieldMap["Adhyaya ID (Comma separated - Ordered)"]])
+		//chapterIds := util.GetSplittedString(record[fieldMap["Adhyaya ID (Comma separated - Ordered)"]])
+		chapterIds := util.GetSplittedString(fmt.Sprintf("%v", record["Adhyaya ID (Comma separated - Ordered)"]))
+		if len(chapterIds) == 0 {
+			return nil, errors.New("no stotra ID")
+		}
 		chapters := make([]entity.Chapter, 0)
 		for _, id := range chapterIds {
 			chapter := chapterMap[id]
@@ -272,7 +272,11 @@ func prepareVariantMap(variantCsvFilePath string, chapterMap map[string]entity.C
 			Chapters:  chapters,
 			IsDefault: true,
 		}
-		variantMap[record[fieldMap["ID"]]] = variant
+		id, ok := record["ID"].(float64)
+		if !ok {
+			return nil, errors.New("no ID found")
+		}
+		variantMap[fmt.Sprintf("%d", int(id))] = variant
 	}
 	return variantMap, nil
 }

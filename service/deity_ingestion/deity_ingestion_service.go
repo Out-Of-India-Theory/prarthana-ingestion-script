@@ -2,138 +2,153 @@ package deity_ingestion
 
 import (
 	"context"
-	"encoding/csv"
+	"errors"
 	"fmt"
-	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/entity"
-	mongoRepo "github.com/Out-Of-India-Theory/prarthana-automated-script/repository/mongo/prarthana_data"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/util"
-	"github.com/google/uuid"
-	"go.uber.org/zap"
 	"log"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
+	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
+	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type DeityIngestionService struct {
 	logger                   *zap.Logger
 	prarthanaMongoRepository mongoRepo.MongoRepository
+	zohoService              zoho.Service
 }
 
 func InitDeityIngestionService(ctx context.Context,
 	prarthanaMongoRepository mongoRepo.MongoRepository,
+	zohoService zoho.Service,
 ) *DeityIngestionService {
 	return &DeityIngestionService{
 		logger:                   logging.WithContext(ctx),
 		prarthanaMongoRepository: prarthanaMongoRepository,
+		zohoService:              zohoService,
 	}
 }
 
-func (s *DeityIngestionService) DeityIngestion(ctx context.Context, prarthanaToDeityCsvFilePath string, deityCsvFilePath string, startID, endID int) (map[string]string, error) {
+func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, endID int) (map[string]string, error) {
 	var err error
-	_, deityToPrarthanaMap := preparePrarthanaToDeityMap(prarthanaToDeityCsvFilePath)
+	_, deityToPrarthanaMap, err := s.preparePrarthanaToDeityMap(ctx)
 	if err != nil {
 		log.Fatalf("Error generating TmpId to ID map: %v", err)
 	}
-	prarthanaIdMap, _ := s.prarthanaMongoRepository.GeneratePrarthanaTmpIdToIdMap(ctx)
+	prarthanaIdMap, err := s.prarthanaMongoRepository.GeneratePrarthanaTmpIdToIdMap(ctx)
 	if err != nil {
 		log.Fatalf("Error generating TmpId to ID map: %v", err)
 	}
-	file, err := os.Open(deityCsvFilePath)
+	var response entity.ShlokaSheetResponse
+	err = s.zohoService.GetSheetData(ctx, "deities", &response)
 	if err != nil {
-		return nil, fmt.Errorf("error opening file: %w", err)
-	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1
-
-	header, err := reader.Read()
-	if err != nil {
-		fmt.Println("Error:", err)
 		return nil, err
 	}
-
-	fieldMap := make(map[string]int)
-	for i, field := range header {
-		fieldMap[field] = i
+	if len(response.Records) == 0 {
+		return nil, errors.New("no records found")
 	}
 
 	var deities []entity.DeityDocument
 	deityIdMap := make(map[string]string)
 
-	records, err := reader.ReadAll()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, err
-	}
 	tmpIdToDeityIdMap, err := s.prarthanaMongoRepository.GetTmpIdToDeityIdMap(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
-	for i, record := range records {
+	for i, record := range response.Records {
 		log.Printf("Processing record %d\n", i+1)
 
-		if len(record) <= fieldMap["ID"] {
-			log.Printf("Skipping record %d: Missing ID field\n", i+1)
-			continue
+		idf, ok := record["ID"].(float64)
+		if !ok {
+			return nil, errors.New("Invalid ID")
 		}
+		id := int(idf)
 
-		id, err := strconv.Atoi(record[fieldMap["ID"]])
-		if err != nil {
-			log.Printf("Skipping record %d: Invalid ID format\n", i+1)
-			continue
-		}
 		if id < startID || id > endID {
 			continue
 		}
-		if len(record) <= fieldMap["Name (Optional)"] {
-			log.Printf("Skipping record %d: Missing Name field\n", i+1)
-			continue
-		}
-		deityName := record[fieldMap["Deity Name"]]
+		deityNameDefault := record["Title (Default)"].(string)
 		re := regexp.MustCompile(`[^a-zA-Z0-9\s]+`)
-		if re.MatchString(deityName) {
-			return nil, fmt.Errorf("the name '%s' contains special characters. Please remove them", deityName)
+		if re.MatchString(deityNameDefault) {
+			return nil, fmt.Errorf("the name '%s' contains special characters. Please remove them", deityNameDefault)
 		}
-		deityUuid := record[fieldMap["UUID"]]
+		deityNameHindi := record["Title (Hindi)"].(string)
+		deityNameKannada := record["Title (Kannada)"].(string)
+		deityNameMarathi := record["Title (Marathi)"].(string)
+		deityNameTamil := record["Title (Tamil)"].(string)
+		deityNameTelugu := record["Title (Telugu)"].(string)
+		deityNameGujarati := record["Title (Gujarati)"].(string)
+
+		deityUuid := record["UUID"].(string)
 		if strings.TrimSpace(deityUuid) == "" {
 			deityUuid = uuid.NewString()
 		}
-		tmpId := record[fieldMap["ID"]]
-		if strings.TrimSpace(tmpId) == "" {
-			tmpId = record[fieldMap["ID"]]
-		}
+		tmpId := fmt.Sprintf("%d", id)
 		if val, found := tmpIdToDeityIdMap[tmpId]; found {
 			deityUuid = val
 		}
-		defaultImage := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/list-image/%s.png", record[fieldMap["Deity Image"]])
+		deityImageNameStr, ok := record["Deity Image"].(string)
+		if !ok {
+			return nil, errors.New("Invalid Deity Image")
+		}
+		deityImageName := strings.ToLower(util.SanitizeString(deityImageNameStr))
+		defaultImage := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/list-image/%s.png", deityImageName)
 		if !util.UrlExists(defaultImage) {
-			return nil, fmt.Errorf("audio URL does not exist: %s", defaultImage)
+			return nil, fmt.Errorf("deity image does not exist: %s", defaultImage)
 		}
-		backgroundImage := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/bg-image/%s.png", record[fieldMap["Deity Image"]])
+		backgroundImage := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/bg-image/%s.png", deityImageName)
 		if !util.UrlExists(backgroundImage) {
-			return nil, fmt.Errorf("audio URL does not exist: %s", backgroundImage)
+			return nil, fmt.Errorf("deity background image does not exist: %s", backgroundImage)
 		}
+		aliases, ok := record["Also known as"].(string)
+		if !ok {
+			aliases = ""
+		}
+		descriptionDefault, ok := record["Description (Default)"].(string)
+		if !ok {
+			return nil, fmt.Errorf("description unavailable for row : %d", id)
+		}
+		descriptionHindi, ok := record["Description (Hindi)"].(string)
+		descriptionKannada, ok := record["Description (Kannada)"].(string)
+		descriptionMarathi, ok := record["Description (Marathi)"].(string)
+		descriptionTamil, ok := record["Description (Tamil)"].(string)
+		descriptionTelugu, ok := record["Description (Telugu)"].(string)
+		descriptionGujarati, ok := record["Description (Gujarati)"].(string)
 		deity := entity.DeityDocument{
 			TmpId: tmpId,
 			Id:    deityUuid,
 			Title: map[string]string{
-				"default": deityName,
+				"default": deityNameDefault,
+				"hi":      deityNameHindi,
+				"kn":      deityNameKannada,
+				"mr":      deityNameMarathi,
+				"ta":      deityNameTamil,
+				"te":      deityNameTelugu,
+				"gu":      deityNameGujarati,
 			},
-			Slug:    strings.ToLower(strings.ReplaceAll(deityName, " ", "_")),
-			Aliases: util.GetSplittedString(record[fieldMap["Also known as"]]),
+			Slug:    strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_")),
+			Aliases: util.GetSplittedString(aliases),
 			Description: map[string]string{
-				"default": record[fieldMap["Description"]],
+				"default": descriptionDefault,
+				"hi":      descriptionHindi,
+				"kn":      descriptionKannada,
+				"mr":      descriptionMarathi,
+				"ta":      descriptionTamil,
+				"te":      descriptionTelugu,
+				"gu":      descriptionGujarati,
 			},
 			UIInfo: entity.DeityUIInfo{
 				DefaultImage:    defaultImage,
 				BackgroundImage: backgroundImage,
 			},
 		}
-		deityIdMap[record[fieldMap["ID"]]] = deity.Id
+		deityIdMap[tmpId] = deity.Id
 		deities = append(deities, deity)
 	}
 	for i, deity := range deities {
@@ -147,35 +162,36 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, prarthanaToD
 	return deityIdMap, s.prarthanaMongoRepository.InsertManyDeities(ctx, deities)
 }
 
-func preparePrarthanaToDeityMap(csvFilePath string) (map[string]string, map[string][]string) {
-	file, err := os.Open(csvFilePath)
+func (s *DeityIngestionService) preparePrarthanaToDeityMap(ctx context.Context) (map[string]string, map[string][]string, error) {
+	var response entity.ShlokaSheetResponse
+	err := s.zohoService.GetSheetData(ctx, "deity to prarthana mapping", &response)
 	if err != nil {
-		return nil, nil
+		return nil, nil, err
 	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1
-
-	header, err := reader.Read()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, nil
-	}
-	fieldMap := make(map[string]int)
-	for i, field := range header {
-		fieldMap[field] = i
-	}
-	records, err := reader.ReadAll()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, nil
+	if len(response.Records) == 0 {
+		return nil, nil, errors.New("no records found")
 	}
 	pdmap := make(map[string]string)
 	dpMap := make(map[string][]string)
-	for _, record := range records {
-		pdmap[record[fieldMap["Prarthana ID"]]] = record[fieldMap["Diety ID"]]
-		dpMap[record[fieldMap["Diety ID"]]] = append(dpMap[record[fieldMap["Diety ID"]]], record[fieldMap["Prarthana ID"]])
+	for _, record := range response.Records {
+		prarthanaIdf, ok := record["Prarthana ID"].(float64)
+		if !ok {
+			return nil, nil, errors.New("prarthana ID is not a float")
+		}
+		deityIdString := fmt.Sprintf("%v", record["Diety ID"])
+
+		//deityIdf, ok := record["Diety ID"].(float64)
+		if len(deityIdString) == 0 {
+			return nil, nil, errors.New("diety ID is not a float")
+		}
+		deityIds := util.GetSplittedString(deityIdString)
+		prarthanaId := strconv.FormatFloat(prarthanaIdf, 'f', -1, 64)
+		//deityId := fmt.Sprintf("%f", deityIdf)
+		for _, id := range deityIds {
+			pdmap[prarthanaId] = id
+			dpMap[id] = append(dpMap[id], prarthanaId)
+		}
+
 	}
-	return pdmap, dpMap
+	return pdmap, dpMap, nil
 }

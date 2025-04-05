@@ -3,8 +3,10 @@ package ingestion
 import (
 	"context"
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/configuration"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/facade"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/facade"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
@@ -26,20 +28,16 @@ func InitIngestionController(ctx context.Context, service facade.Service, config
 
 func (con *Controller) ShlokIngestion(c *gin.Context) {
 	ctx := c.Request.Context()
-	var requestBody struct {
-		CsvFilePath string `json:"csv_file_path"`
-		StartID     int    `json:"start_id"`
-		EndID       int    `json:"end_id"`
-	}
-
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
+	ctx = util.SetZohoAccessTokenInContext(ctx, c.Request.Header.Get("zoho-access-token"))
+	var request entity.IngestionRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  http.StatusBadRequest,
 			"message": "Invalid request payload",
 		})
 		return
 	}
-	err := con.service.ShlokIngestionService().ShlokIngestion(ctx, requestBody.CsvFilePath, requestBody.StartID, requestBody.EndID)
+	err := con.service.ShlokIngestionService().ShlokIngestion(ctx, request.StartID, request.EndID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  http.StatusInternalServerError,
@@ -56,20 +54,16 @@ func (con *Controller) ShlokIngestion(c *gin.Context) {
 
 func (con *Controller) StotraIngestion(c *gin.Context) {
 	ctx := c.Request.Context()
-	var requestBody struct {
-		CsvFilePath string `json:"csv_file_path"`
-		StartID     int    `json:"start_id"`
-		EndID       int    `json:"end_id"`
-	}
-
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
+	ctx = util.SetZohoAccessTokenInContext(ctx, c.Request.Header.Get("zoho-access-token"))
+	var request entity.IngestionRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  http.StatusBadRequest,
 			"message": "Invalid request payload",
 		})
 		return
 	}
-	_, err := con.service.StotraIngestionService().StotraIngestion(ctx, requestBody.CsvFilePath, requestBody.StartID, requestBody.EndID)
+	_, err := con.service.StotraIngestionService().StotraIngestion(ctx, request.StartID, request.EndID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  http.StatusInternalServerError,
@@ -86,15 +80,8 @@ func (con *Controller) StotraIngestion(c *gin.Context) {
 
 func (con *Controller) PrarthanaIngestion(c *gin.Context) {
 	ctx := c.Request.Context()
-	var requestBody struct {
-		AdhyayaCsvFilePath          string `json:"adhyaya_csv_file_path"`
-		VariantCsvFilePath          string `json:"variant_csv_file_path"`
-		PrarthanaCsvFilePath        string `json:"prarthana_csv_file_path"`
-		PrarthanaToDeityCsvFilePath string `json:"prarthana_to_deity_csv_file_path"`
-		StartID                     int    `json:"start_id"`
-		EndID                       int    `json:"end_id"`
-	}
-
+	ctx = util.SetZohoAccessTokenInContext(ctx, c.Request.Header.Get("zoho-access-token"))
+	var requestBody entity.IngestionRequest
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  http.StatusBadRequest,
@@ -102,7 +89,7 @@ func (con *Controller) PrarthanaIngestion(c *gin.Context) {
 		})
 		return
 	}
-	_, err := con.service.PrarthanaIngestionService().PrarthanaIngestion(ctx, requestBody.PrarthanaToDeityCsvFilePath, requestBody.AdhyayaCsvFilePath, requestBody.VariantCsvFilePath, requestBody.PrarthanaCsvFilePath, requestBody.StartID, requestBody.EndID)
+	_, err := con.service.PrarthanaIngestionService().PrarthanaIngestion(ctx, requestBody.StartID, requestBody.EndID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  http.StatusInternalServerError,
@@ -119,12 +106,8 @@ func (con *Controller) PrarthanaIngestion(c *gin.Context) {
 
 func (con *Controller) DeityIngestion(c *gin.Context) {
 	ctx := c.Request.Context()
-	var requestBody struct {
-		DeityCsvFilePath            string `json:"deity_csv_file_path"`
-		PrarthanaToDeityCsvFilePath string `json:"prarthana_to_deity_csv_file_path"`
-		StartID                     int    `json:"start_id"`
-		EndID                       int    `json:"end_id"`
-	}
+	ctx = util.SetZohoAccessTokenInContext(ctx, c.Request.Header.Get("zoho-access-token"))
+	var requestBody entity.IngestionRequest
 
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -133,7 +116,7 @@ func (con *Controller) DeityIngestion(c *gin.Context) {
 		})
 		return
 	}
-	_, err := con.service.DeityIngestionService().DeityIngestion(ctx, requestBody.PrarthanaToDeityCsvFilePath, requestBody.DeityCsvFilePath, requestBody.StartID, requestBody.EndID)
+	_, err := con.service.DeityIngestionService().DeityIngestion(ctx, requestBody.StartID, requestBody.EndID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  http.StatusInternalServerError,

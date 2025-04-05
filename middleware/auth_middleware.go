@@ -1,9 +1,8 @@
 package middleware
 
 import (
-	"context"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/configuration"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -20,15 +19,16 @@ func InitAuthMiddleware(config *configuration.Configuration, zohoAuthService zoh
 	}
 }
 
-func (am *AuthMiddleware) AuthMiddleware(ctx context.Context, zohoAuthService zoho.Service) gin.HandlerFunc {
+func (am *AuthMiddleware) ZohoAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if zohoAuthService.IsTokenExpired() {
-			if err := zohoAuthService.RefreshAccessToken(); err != nil {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to refresh access token"})
-				c.Abort()
-				return
-			}
+		accessToken, err := am.zohoAuthService.RefreshAccessToken()
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to refresh access token"})
+			c.Abort()
+			return
 		}
+		c.Set("access-token", accessToken)
+		c.Request.Header.Set("zoho-access-token", accessToken)
 		c.Next()
 	}
 }

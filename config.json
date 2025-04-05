@@ -5,22 +5,25 @@
     "PrometheusPort": "8085",
     "PrometheusEnabled": false,
     "NewRelicEnabled": true,
-    "AppName": "prarthana-automated-script",
+    "AppName": "prarthana-ingestion-script",
     "NewRelicLicense": "XXX"
   },
   "MongoConfig": {
-    "MongoConfig": {
-      "URI": "config_uri",
-      "Timeout": "5s"
-    },
-    "Database": "prarthana-service"
+    "URI": "config_uri",
+    "Timeout": "5s",
+    "Database": "prarthana_service_tmp"
   },
-  "ZohoAuthConfig": {
-    "ClientId":"xxxx",
-    "ClientSecret" : "xxxx",
-    "RedirectUrl"  : "https://dharmayana.in",
-    "Scopes"       : "ZohoSheet.dataAPI.UPDATE,ZohoSheet.dataAPI.READ",
-    "AuthUrl"      : "https://accounts.zoho.in/oauth/v2/auth",
-    "TokenUrl"     : "https://accounts.zoho.in/oauth/v2/token"
+  "zohoconfig": {
+    "clientid": "XXXX",
+    "clientsecret": "XXXXX",
+    "redirecturl": "https://dharmayana.in",
+    "scopes": "zohosheet.dataapi.update,zohosheet.dataapi.read",
+    "authurl": "https://accounts.zoho.in/oauth/v2/auth",
+    "tokenurl": "https://accounts.zoho.in/oauth/v2/token",
+    "refreshtoken": "XXX",
+    "sheetid": "XXX"
+  },
+  "UIConfig": {
+    "BackendHost": "http://localhost:8080"
   }
 }

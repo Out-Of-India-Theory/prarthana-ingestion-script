@@ -1,11 +1,10 @@
 package zoho
 
-import "context"
+import (
+	"context"
+)
 
 type Service interface {
-	GetAuthorizationURL(state string) string
-	ExchangeCodeForTokens(ctx context.Context, code string) error
-	RefreshAccessToken() error
-	GetSheetData(sheetId, sheetName string) ([]byte, error)
-	IsTokenExpired() bool
+	RefreshAccessToken() (string, error)
+	GetSheetData(ctx context.Context, sheetName string, response interface{}) error
 }

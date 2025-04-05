@@ -2,12 +2,13 @@ package stotra_ingestion
 
 import (
 	"context"
-	"encoding/csv"
+	"errors"
 	"fmt"
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/entity"
-	mongoRepo "github.com/Out-Of-India-Theory/prarthana-automated-script/repository/mongo/prarthana_data"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/util"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
+	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/go-audio/wav"
 	"github.com/hajimehoshi/go-mp3"
 	"go.uber.org/zap"
@@ -20,121 +21,274 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 type StotraIngestionService struct {
 	logger                   *zap.Logger
 	prarthanaMongoRepository mongoRepo.MongoRepository
+	zohoService              zoho.Service
 }
 
 func InitStotraIngestionService(ctx context.Context,
 	prarthanaMongoRepository mongoRepo.MongoRepository,
+	zohoService zoho.Service,
 ) *StotraIngestionService {
 	return &StotraIngestionService{
 		logger:                   logging.WithContext(ctx),
 		prarthanaMongoRepository: prarthanaMongoRepository,
+		zohoService:              zohoService,
 	}
 }
 
-func (s *StotraIngestionService) StotraIngestion(ctx context.Context, csvFilePath string, startID, endID int) (map[string]entity.Stotra, error) {
-	file, err := os.Open(csvFilePath)
+//func (s *StotraIngestionService) StotraIngestion(ctx context.Context, startID, endID int) (map[string]entity.Stotra, error) {
+//	var response entity.ShlokaSheetResponse
+//	err := s.zohoService.GetSheetData(ctx, "stotra", &response)
+//	if err != nil {
+//		return nil, err
+//	}
+//	if len(response.Records) == 0 {
+//		return nil, errors.New("no records found")
+//	}
+//
+//	stotraMap := map[string]entity.Stotra{}
+//	var stotras []entity.Stotra
+//	for i, record := range response.Records {
+//		log.Printf("Processing record %d\n", i+1) // Log the current record number
+//		idf, ok := record["ID"].(float64)
+//		if !ok {
+//			return nil, fmt.Errorf("invalid ID")
+//		}
+//		id := int(idf)
+//		if id < startID || id > endID {
+//			continue
+//		}
+//
+//		name, ok := record["Name (Optional)"].(string)
+//		if !ok {
+//			return nil, fmt.Errorf("invalid Name : %d", id)
+//		}
+//		name = strings.TrimSpace(name)
+//		re := regexp.MustCompile(`[^a-zA-Z0-9\s]+`)
+//		if re.MatchString(name) {
+//			return nil, fmt.Errorf("the name '%s' contains special characters. Please remove them", name)
+//		}
+//		baseFilename := strings.ToLower(strings.ReplaceAll(strings.TrimSuffix(name, "|"), " ", "_"))
+//		isWav := true
+//		stotraUrl := "https://d161fa2zahtt3z.cloudfront.net/audio/" + baseFilename + ".wav"
+//		stotraUrlmp3 := "https://d161fa2zahtt3z.cloudfront.net/audio/" + baseFilename + ".mp3"
+//		if !util.UrlExists(stotraUrl) {
+//			if !util.UrlExists(stotraUrlmp3) {
+//				return nil, fmt.Errorf("audio URL does not exist: %s", stotraUrl)
+//			}
+//			isWav = false
+//			stotraUrl = stotraUrlmp3
+//		}
+//		resp, err := http.Get(stotraUrl)
+//		if err != nil || resp.StatusCode != http.StatusOK {
+//			fmt.Printf("Error accessing StotraUrl: %s, Error: %v\n", stotraUrl, err)
+//			continue
+//		}
+//		defer resp.Body.Close()
+//		pattern := "*.wav"
+//		if !isWav {
+//			pattern = "*.mp3"
+//		}
+//
+//		tempFile, err := os.CreateTemp("", pattern)
+//		if err != nil {
+//			fmt.Println("Error creating temp file:", err)
+//			continue
+//		}
+//		defer os.Remove(tempFile.Name())
+//		_, err = io.Copy(tempFile, resp.Body)
+//		if err != nil {
+//			fmt.Println("Error saving audio file:", err)
+//			continue
+//		}
+//
+//		durationStr, durationInSeconds, err := getDurationFromFile(tempFile.Name())
+//		if err != nil {
+//			fmt.Println("Error getting duration:", err)
+//			continue
+//		}
+//
+//		_, durationInMilliseconds, err := getDurationFromFileInMilliseconds(tempFile.Name())
+//		if err != nil {
+//			fmt.Println("Error getting duration in milliseconds:", err)
+//			continue
+//		}
+//		shlokIds := fmt.Sprintf("%v", record["Shloka ID (Comma separated - Ordered)"])
+//		stotra := entity.Stotra{
+//			ID:    strconv.Itoa(id),
+//			IntId: id,
+//			Title: map[string]string{
+//				"default": name,
+//			},
+//			ShlokIds:               util.GetSplittedString(shlokIds),
+//			Duration:               durationStr,
+//			DurationInSeconds:      durationInSeconds,
+//			DurationInMilliseconds: durationInMilliseconds,
+//			StotraUrl:              stotraUrl,
+//		}
+//
+//		stotraMap[strconv.Itoa(id)] = stotra
+//		stotras = append(stotras, stotra)
+//	}
+//	return stotraMap, s.prarthanaMongoRepository.InsertManyStotras(ctx, stotras)
+//}
+
+func (s *StotraIngestionService) StotraIngestion(ctx context.Context, startID, endID int) (map[string]entity.Stotra, error) {
+	var response entity.ShlokaSheetResponse
+	err := s.zohoService.GetSheetData(ctx, "stotra", &response)
 	if err != nil {
-		return nil, fmt.Errorf("error opening file: %w", err)
+		return nil, err
 	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1
-
-	header, err := reader.Read()
-	if err != nil {
-		return nil, fmt.Errorf("error reading header: %w", err)
-	}
-	fieldMap := make(map[string]int)
-	for i, field := range header {
-		fieldMap[field] = i
+	if len(response.Records) == 0 {
+		return nil, errors.New("no records found")
 	}
 
-	stotraMap := map[string]entity.Stotra{}
-	var stotras []entity.Stotra
-	records, err := reader.ReadAll()
-	if err != nil {
-		return nil, fmt.Errorf("error reading records: %w", err)
+	stotraMap := make(map[string]entity.Stotra)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	errChan := make(chan error, 1)
+	sem := make(chan struct{}, 10)
+
+	for i, record := range response.Records {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			sem <- struct{}{}
+			wg.Add(1)
+			go func(i int, record map[string]interface{}) {
+				defer func() {
+					<-sem
+					wg.Done()
+				}()
+
+				idf, ok := record["ID"].(float64)
+				if !ok {
+					errChan <- fmt.Errorf("invalid ID")
+					return
+				}
+				id := int(idf)
+				if id < startID || id > endID {
+					return
+				}
+				log.Printf("total processed %d\n", i+1)
+				log.Printf("Processing record : row number %d\n", id)
+
+				nameDefault, ok := record["Name (Optional) (Default)"].(string)
+				if !ok {
+					errChan <- fmt.Errorf("invalid Name : %d", id)
+					return
+				}
+				nameDefault = strings.TrimSpace(nameDefault)
+				re := regexp.MustCompile(`[^a-zA-Z0-9\s\-]+`)
+				if re.MatchString(nameDefault) {
+					errChan <- fmt.Errorf("the name '%s' contains special characters. Please remove them", nameDefault)
+					return
+				}
+				nameHindi, ok := record["Name (Optional) (Hindi)"].(string)
+				nameKannada, ok := record["Name (Optional) (Kannada)"].(string)
+				nameMarathi, ok := record["Name (Optional) (Marathi)"].(string)
+				nameTamil, ok := record["Name (Optional) (Tamil)"].(string)
+				nameTelugu, ok := record["Name (Optional) (Telugu)"].(string)
+				nameGujarati, ok := record["Name (Optional) (Gujarati)"].(string)
+
+				baseFilename := strings.ToLower(util.SanitizeString(nameDefault))
+				//strings.ToLower(strings.ReplaceAll(strings.TrimSuffix(name, "|"), " ", "_"))
+				isWav := true
+				stotraUrl := "https://d161fa2zahtt3z.cloudfront.net/audio/" + baseFilename + ".wav"
+				stotraUrlmp3 := "https://d161fa2zahtt3z.cloudfront.net/audio/" + baseFilename + ".mp3"
+				if !util.UrlExists(stotraUrl) {
+					if !util.UrlExists(stotraUrlmp3) {
+						errChan <- fmt.Errorf("audio URL does not exist: %s", stotraUrl)
+						return
+					}
+					isWav = false
+					stotraUrl = stotraUrlmp3
+				}
+
+				resp, err := http.Get(stotraUrl)
+				if err != nil || resp.StatusCode != http.StatusOK {
+					log.Printf("Error accessing StotraUrl: %s, Error: %v\n", stotraUrl, err)
+					return
+				}
+				defer resp.Body.Close()
+
+				pattern := "*.wav"
+				if !isWav {
+					pattern = "*.mp3"
+				}
+
+				tempFile, err := os.CreateTemp("", pattern)
+				if err != nil {
+					log.Println("Error creating temp file:", err)
+					return
+				}
+				defer os.Remove(tempFile.Name())
+				_, err = io.Copy(tempFile, resp.Body)
+				if err != nil {
+					log.Println("Error saving audio file:", err)
+					return
+				}
+
+				durationStr, durationInSeconds, err := getDurationFromFile(tempFile.Name())
+				if err != nil {
+					log.Println("Error getting duration:", err)
+					return
+				}
+
+				_, durationInMilliseconds, err := getDurationFromFileInMilliseconds(tempFile.Name())
+				if err != nil {
+					log.Println("Error getting duration in milliseconds:", err)
+					return
+				}
+
+				shlokIds := fmt.Sprintf("%v", record["Shloka ID (Comma separated - Ordered)"])
+				stotra := entity.Stotra{
+					ID:    strconv.Itoa(id),
+					IntId: id,
+					Title: map[string]string{
+						"default": nameDefault,
+						"hi":      nameHindi,
+						"kn":      nameKannada,
+						"mr":      nameMarathi,
+						"ta":      nameTamil,
+						"te":      nameTelugu,
+						"gu":      nameGujarati,
+					},
+					ShlokIds:               util.GetSplittedString(shlokIds),
+					Duration:               durationStr,
+					DurationInSeconds:      durationInSeconds,
+					DurationInMilliseconds: durationInMilliseconds,
+					StotraUrl:              stotraUrl,
+				}
+
+				mu.Lock()
+				stotraMap[strconv.Itoa(id)] = stotra
+				mu.Unlock()
+			}(i, record)
+		}
 	}
 
-	for i, record := range records {
-		if len(record) <= fieldMap["ID"] {
-			log.Printf("Skipping record %d: Missing ID field\n", i+1)
-			continue
-		}
-		id, err := strconv.Atoi(record[fieldMap["ID"]])
-		if err != nil {
-			log.Printf("Skipping record %d: Invalid ID format\n", i+1)
-			continue
-		}
-		if id < startID || id > endID {
-			continue
-		}
+	// Wait for all workers to finish
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
 
-		if len(record) <= fieldMap["Name (Optional)"] {
-			log.Printf("Skipping record %d: Missing Name field\n", i+1)
-			continue
-		}
-		title := record[fieldMap["Name (Optional)"]]
-		re := regexp.MustCompile(`[^a-zA-Z0-9\s]+`)
-		if re.MatchString(title) {
-			return nil, fmt.Errorf("the name '%s' contains special characters. Please remove them", title)
-		}
-		baseFilename := strings.ToLower(strings.ReplaceAll(strings.TrimSuffix(title, "|"), " ", "_"))
-		stotraUrl := "https://d161fa2zahtt3z.cloudfront.net/audio/" + baseFilename + ".wav"
-		if !util.UrlExists(stotraUrl) {
-			return nil, fmt.Errorf("audio URL does not exist: %s", stotraUrl)
-		}
-		resp, err := http.Get(stotraUrl)
-		if err != nil || resp.StatusCode != http.StatusOK {
-			fmt.Printf("Error accessing StotraUrl: %s, Error: %v\n", stotraUrl, err)
-			continue
-		}
-		defer resp.Body.Close()
+	// Check for errors
+	if err := <-errChan; err != nil {
+		return nil, err
+	}
 
-		tempFile, err := os.CreateTemp("", "*.wav")
-		if err != nil {
-			fmt.Println("Error creating temp file:", err)
-			continue
-		}
-		defer os.Remove(tempFile.Name())
-		_, err = io.Copy(tempFile, resp.Body)
-		if err != nil {
-			fmt.Println("Error saving audio file:", err)
-			continue
-		}
-
-		durationStr, durationInSeconds, err := getDurationFromFile(tempFile.Name())
-		if err != nil {
-			fmt.Println("Error getting duration:", err)
-			continue
-		}
-
-		_, durationInMilliseconds, err := getDurationFromFileInMilliseconds(tempFile.Name())
-		if err != nil {
-			fmt.Println("Error getting duration in milliseconds:", err)
-			continue
-		}
-
-		stotra := entity.Stotra{
-			ID: strconv.Itoa(id),
-			Title: map[string]string{
-				"default": title,
-			},
-			ShlokIds:               util.GetSplittedString(record[fieldMap["Shloka ID (Comma separated - Ordered)"]]),
-			Duration:               durationStr,
-			DurationInSeconds:      durationInSeconds,
-			DurationInMilliseconds: durationInMilliseconds,
-			StotraUrl:              stotraUrl,
-		}
-
-		stotraMap[strconv.Itoa(id)] = stotra
+	// Insert into the database
+	stotras := make([]entity.Stotra, 0, len(stotraMap))
+	for _, stotra := range stotraMap {
 		stotras = append(stotras, stotra)
 	}
 	return stotraMap, s.prarthanaMongoRepository.InsertManyStotras(ctx, stotras)

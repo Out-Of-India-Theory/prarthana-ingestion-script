@@ -1,11 +1,11 @@
 package facade
 
 import (
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/deity_ingestion"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/prarthana_ingestion"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/shlok_ingestion"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/stotra_ingestion"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/deity_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/prarthana_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/stotra_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
 )
 
 type Service interface {

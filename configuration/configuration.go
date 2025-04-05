@@ -12,12 +12,17 @@ var configuration *Configuration
 
 type Configuration struct {
 	ServerConfig     config.AppConfig
-	MongoConfig      MongoConfig
-	ZohoAuthConfig   ZohoAuthConfig
+	MongoConfig      config.MongoConfig
+	ZohoConfig       ZohoConfig
 	AuthClientConfig HttpClientConfig
+	UIConfig         UIConfig
 }
 
-type ZohoAuthConfig struct {
+type UIConfig struct {
+	BackendHost string
+}
+
+type ZohoConfig struct {
 	ClientId      string
 	ClientSecret  string
 	RedirectUrl   string
@@ -25,6 +30,8 @@ type ZohoAuthConfig struct {
 	AuthUrl       string
 	SpreadsheetId string
 	Scopes        string
+	RefreshToken  string
+	SheetId       string
 }
 
 type HttpClientConfig struct {
@@ -32,11 +39,6 @@ type HttpClientConfig struct {
 	Timeout       time.Duration
 	ApiKey        string
 	MaxThroughput int
-}
-
-type MongoConfig struct {
-	config.MongoConfig
-	Database string
 }
 
 func addConfigPath(v *viper.Viper) {

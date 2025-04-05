@@ -5,5 +5,5 @@ import (
 )
 
 type Service interface {
-	ShlokIngestion(ctx context.Context, csvFilePath string, startID, endID int) error
+	ShlokIngestion(ctx context.Context, startID, endID int) error
 }

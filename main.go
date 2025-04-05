@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/Out-Of-India-Theory/oit-go-commons/app"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/configuration"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/server"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/server"
 )
 
 func main() {

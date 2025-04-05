@@ -3,6 +3,7 @@ package util
 import (
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -54,4 +55,23 @@ func UrlExists(url string) bool {
 	}
 	defer resp.Body.Close()
 	return resp.StatusCode == http.StatusOK
+}
+
+func SanitizeString(input string) string {
+	// Remove square brackets and their contents
+	reSquareBrackets := regexp.MustCompile(`\[.*?\]`)
+	cleaned := reSquareBrackets.ReplaceAllString(input, "")
+
+	// Remove parentheses
+	reParentheses := regexp.MustCompile(`\(|\)`)
+	cleaned = reParentheses.ReplaceAllString(cleaned, "")
+
+	// Replace hyphens and spaces with underscores
+	reSpaceHyphen := regexp.MustCompile(`[\s\-]+`)
+	cleaned = reSpaceHyphen.ReplaceAllString(cleaned, "_")
+
+	// Trim leading and trailing underscores, if any
+	cleaned = strings.Trim(cleaned, "_")
+
+	return cleaned
 }

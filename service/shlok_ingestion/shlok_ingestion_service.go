@@ -2,113 +2,102 @@ package shlok_ingestion
 
 import (
 	"context"
-	"encoding/csv"
+	"errors"
 	"fmt"
-	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/entity"
-	mongoRepo "github.com/Out-Of-India-Theory/prarthana-automated-script/repository/mongo/prarthana_data"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/util"
-	"go.uber.org/zap"
 	"log"
-	"os"
 	"strconv"
+
+	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
+	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
+	"go.uber.org/zap"
 )
 
 type ShlokIngestionService struct {
 	logger                   *zap.Logger
 	prarthanaMongoRepository mongoRepo.MongoRepository
+	zohoService              zoho.Service
 }
 
 func InitShlokIngestionService(ctx context.Context,
 	prarthanaMongoRepository mongoRepo.MongoRepository,
+	zohoService zoho.Service,
 ) *ShlokIngestionService {
 	return &ShlokIngestionService{
 		logger:                   logging.WithContext(ctx),
 		prarthanaMongoRepository: prarthanaMongoRepository,
+		zohoService:              zohoService,
 	}
 }
 
-func (s *ShlokIngestionService) ShlokIngestion(ctx context.Context, csvFilePath string, startID, endID int) error {
-	file, err := os.Open(csvFilePath)
+func (s *ShlokIngestionService) ShlokIngestion(ctx context.Context, startID, endID int) error {
+	var response entity.ShlokaSheetResponse
+	err := s.zohoService.GetSheetData(ctx, "shloka", &response)
 	if err != nil {
-		return fmt.Errorf("error opening file: %w", err)
+		return err
 	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1
-
-	header, err := reader.Read()
-	if err != nil {
-		return fmt.Errorf("error reading header: %w", err)
-	}
-
-	fieldMap := make(map[string]int)
-	for i, field := range header {
-		fieldMap[field] = i
+	if len(response.Records) == 0 {
+		return errors.New("no records found")
 	}
 
 	var shloks []entity.Shlok
-
-	records, err := reader.ReadAll()
-	if err != nil {
-		return fmt.Errorf("error reading records: %w", err)
-	}
-	for i, record := range records {
+	langs := []string{"sanskrit", "english", "kannada", "hindi", "telugu", "bengali", "marathi", "tamil", "gujarati", "odiya", "malayalam", "assamese", "punjabi"}
+	for i, record := range response.Records {
 		log.Printf("Processing record %d\n", i+1) // Log the current record number
-
-		if len(record) <= fieldMap["ID"] {
-			log.Printf("Skipping record %d: Missing ID field\n", i+1)
-			continue
+		idf, ok := record["ID"].(float64)
+		if !ok {
+			return fmt.Errorf("invalid ID")
 		}
-		id, err := strconv.Atoi(record[fieldMap["ID"]])
-		if err != nil {
-			log.Printf("Skipping record %d: Invalid ID format\n", i+1)
-			continue
-		}
+		id := int(idf)
 		if id < startID || id > endID {
 			continue
 		}
-
-		if len(record) <= fieldMap["Name (Optional)"] {
-			log.Printf("Skipping record %d: Missing Name field\n", i+1)
-			continue
+		name, ok := record["Name (Optional)"].(string)
+		if !ok {
+			name = ""
 		}
-
 		shlok := entity.Shlok{
-			ID: record[fieldMap["ID"]],
+			ID:    strconv.Itoa(id),
+			IntId: id,
 			Title: map[string]string{
-				"default": record[fieldMap["Name (Optional)"]],
+				"default": name,
 			},
 			Explanation: make(map[string]string),
 			Shlok:       make(map[string]string),
 		}
 
-		explanationKeys := util.ExtractLanguageKeys(fieldMap, "translation_")
-		shlokKeys := util.ExtractLanguageKeys(fieldMap, "text_")
-		for lang, index := range explanationKeys {
-			if index < len(record) && record[index] != "" {
-				if lang == "english" {
-					shlok.Explanation["default"] = record[index]
-				} else {
-					shlok.Explanation[lang] = record[index]
-				}
-			} else {
+		for _, lang := range langs {
+			value, exists := record[fmt.Sprintf("translation_%s", lang)].(string)
+			if !exists || value == "" {
 				log.Printf("Warning: Missing translation for language '%s' in record %d\n", lang, i+1)
+				continue
+			}
+
+			if lang == "english" {
+				shlok.Explanation["default"] = value // English is mapped to default
+			} else {
+				shlok.Explanation[lang] = value
 			}
 		}
-		for lang, index := range shlokKeys {
-			if index < len(record) && record[index] != "" {
-				if lang == "sanskrit" {
-					shlok.Shlok["default"] = record[index]
-				} else {
-					shlok.Shlok[lang] = record[index]
-				}
+
+		for _, lang := range langs {
+			value, exists := record[fmt.Sprintf("text_%s", lang)].(string)
+			if !exists || value == "" {
+				log.Printf("Warning: Missing shlok for language '%s' in record %d\n", lang, i+1)
+				continue
+			}
+
+			if lang == "sanskrit" {
+				shlok.Shlok["default"] = value // Sanskrit is mapped to default
 			} else {
-				log.Printf("Warning: Missing prarthana_data for language '%s' in record %d\n", lang, i+1)
+				shlok.Shlok[lang] = value
 			}
 		}
 		shloks = append(shloks, shlok)
+	}
+	if len(shloks) == 0 {
+		return errors.New("no shloks to ingest")
 	}
 	return s.prarthanaMongoRepository.InsertManyShloks(ctx, shloks)
 }
