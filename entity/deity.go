@@ -1,5 +1,7 @@
 package entity
 
+import "time"
+
 type DeityDocument struct {
 	TmpId          string              `bson:"TmpId"`
 	Id             string              `bson:"_id" json:"_id"`
@@ -14,6 +16,8 @@ type DeityDocument struct {
 	FestivalIds    []string            `json:"festival_ids" bson:"festival_ids"`
 	Region         []string            `json:"region" bson:"region"`
 	AliasesV1      map[string][]string `json:"aliases_v1" bson:"aliases_v1"`
+	CreatedAt      time.Time           `bson:"created_at"`
+	UpdatedAt      time.Time           `bson:"updated_at"`
 }
 
 type DeityUIInfo struct {
@@ -27,4 +31,11 @@ type HeroImageAlbum struct {
 	FullImage      string `json:"full_image" bson:"full_image"`
 	ThumbnailImage string `json:"thumbnail_image" bson:"thumbnail_image"`
 	ShareImage     string `json:"share_image" bson:"share_image"`
+}
+
+type DeitySearchData struct {
+	ID       string   `json:"id"`
+	Title    string   `json:"title"`
+	Aliases  []string `json:"aliases"`
+	ImageURL string   `json:"image_url"`
 }

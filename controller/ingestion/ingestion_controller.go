@@ -130,3 +130,39 @@ func (con *Controller) DeityIngestion(c *gin.Context) {
 		"data":    nil,
 	})
 }
+
+func (con *Controller) DeitySearchIngestion(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	err := con.service.SearchIngestionService().InsertDeitySearchData(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Error processing request: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  http.StatusOK,
+		"message": "Successful",
+		"data":    nil,
+	})
+}
+
+func (con *Controller) PrarthanaSearchIngestion(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	err := con.service.SearchIngestionService().InsertPrarthanaSearchData(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Error processing request: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  http.StatusOK,
+		"message": "Successful",
+		"data":    nil,
+	})
+}

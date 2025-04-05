@@ -16,6 +16,14 @@ type Configuration struct {
 	ZohoConfig       ZohoConfig
 	AuthClientConfig HttpClientConfig
 	UIConfig         UIConfig
+	ESConfig         ESConfig
+}
+
+type ESConfig struct {
+	Host           string
+	Auth           string
+	DeityIndex     string
+	PrarthanaIndex string
 }
 
 type UIConfig struct {

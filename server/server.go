@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"github.com/Out-Of-India-Theory/oit-go-commons/app"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/es/prarthana"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/deity_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/facade"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/prarthana_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/search_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/stotra_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
@@ -20,6 +22,7 @@ import (
 func InitServer(ctx context.Context, app *app.App, configuration *configuration.Configuration) {
 	//repo initializations
 	prarthanaDataMongoRepository := prarthana_data.InitPrarthanaDataMongoRepository(ctx, *configuration)
+	prarthanaESRepository := prarthana.InitPrarthanaESRepository(ctx, configuration.ESConfig)
 
 	zohoService := zoho.InitZohoService(ctx, configuration, &http.Client{})
 	//service initializations
@@ -27,8 +30,9 @@ func InitServer(ctx context.Context, app *app.App, configuration *configuration.
 	stotraIngestionService := stotra_ingestion.InitStotraIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
 	prarthanaIngestionService := prarthana_ingestion.InitPrathanaIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
 	deityIngestionService := deity_ingestion.InitDeityIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
+	searchIngestionService := search_ingestion.InitSearchIngestionService(ctx, prarthanaDataMongoRepository, prarthanaESRepository)
 
-	facadeService := facade.InitFacadeService(ctx, configuration, shlokIngestionService, stotraIngestionService, prarthanaIngestionService, deityIngestionService, zohoService)
+	facadeService := facade.InitFacadeService(ctx, configuration, shlokIngestionService, stotraIngestionService, prarthanaIngestionService, deityIngestionService, zohoService, searchIngestionService)
 	registerMiddleware(app, configuration)
 	registerRoutes(ctx, app, facadeService, configuration)
 
