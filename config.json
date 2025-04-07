@@ -25,5 +25,11 @@
   },
   "UIConfig": {
     "BackendHost": "http://localhost:8080"
+  },
+  "ESConfig": {
+    "Host": "https://vpc-panchanga-service-o4til57zbor4yogtrvqcjx75l4.ap-south-1.es.amazonaws.com",
+    "Auth": "xxxx",
+    "DeityIndex": "staging-deity",
+    "PrarthanaIndex": "prarthana"
   }
 }

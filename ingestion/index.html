@@ -131,11 +131,25 @@
         <input id="fileDeityCardImage" type="file" multiple style="display:none">
         <textarea id="responseDeityCard" readonly></textarea> </div>
 
+        <button onclick="triggerDeityHeroFullInput('images')">Upload Deity Hero Full Images</button>
+        <input id="fileDeityHeroFullImage" type="file" multiple style="display:none">
+        <textarea id="responseDeityHeroFull" readonly></textarea>
+
+        <button onclick="triggerDeityHeroShareInput('images')">Upload Deity Hero Share Images</button>
+        <input id="fileDeityHeroShareImage" type="file" multiple style="display:none">
+        <textarea id="responseDeityHeroShare" readonly></textarea>
+
+        <button onclick="triggerDeityDoDInput('images')">Upload Deity DoD Images</button>
+        <input id="fileDeityDoDImage" type="file" multiple style="display:none">
+        <textarea id="responseDeityDoD" readonly></textarea>
+
     <div class="button-group">
         <button id="btn1" onclick="callApi(`/prarthana_script/v1/shloks`)">1. Ingest Shloks</button>
         <button id="btn2" onclick="callApi('/prarthana_script/v1/stotras')">2. Ingest Stotras</button>
         <button id="btn3" onclick="callApi('/prarthana_script/v1/prarthanas/')">3. Ingest Prarthanas</button>
         <button id="btn4" onclick="callApi('/prarthana_script/v1/deities')">4. Ingest Deities</button>
+        <button id="btn5" onclick="callGetApi('/prarthana_script/v1/deities-search')">5. Update Search Deity Data</button>
+        <button id="btn6" onclick="callApi('/prarthana_script/v1/prarthanas-search')">6. Update Search Prarthana Data</button>
     </div>
 </div>
 
@@ -189,6 +203,35 @@
             buttons.forEach(button => button.disabled = false);
         }
     }
+    async function callGetApi(uri) {
+        const backendHost = "{{ .BackendHost }}";
+        const endpoint = `${backendHost}${uri}`;
+
+        const buttons = document.querySelectorAll("button");
+        buttons.forEach(button => button.disabled = true);
+
+        try {
+            document.getElementById("response").value = `Calling GET API: ${endpoint}...`;
+
+            const response = await fetch(endpoint, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) {
+                const errorMessage = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorMessage}`);
+            }
+
+            const data = await response.json();
+            document.getElementById("response").value = JSON.stringify(data, null, 2);
+        } catch (error) {
+            document.getElementById("response").value = `Error: ${error.message}`;
+        } finally {
+            buttons.forEach(button => button.disabled = false);
+        }
+    }
+
 
     function triggerFileInput(buttonType) {
         if (buttonType === 'audio') {
@@ -206,6 +249,18 @@
 
     function triggerDeityFileInput(buttonType) {
         document.getElementById("fileDeityCardImage").click();
+    }
+
+    function triggerDeityHeroFullInput(buttonType) {
+        document.getElementById("fileDeityHeroFullImage").click();
+    }
+
+    function triggerDeityHeroShareInput(buttonType) {
+        document.getElementById("fileDeityHeroShareImage").click();
+    }
+
+    function triggerDeityDoDInput(buttonType) {
+        document.getElementById("fileDeityDoDImage").click();
     }
 
     document.getElementById("fileInputAudio").addEventListener("change", async function () {
@@ -331,7 +386,6 @@
         }
     });
 
-
     document.getElementById("fileDeityListImage").addEventListener("change", async function () {
         console.log("Hello 1")
         const files = document.getElementById("fileDeityListImage").files;
@@ -454,6 +508,172 @@
             document.getElementById("responseDeityCard").value = `Error: ${error.message}`;
         }
     });
+
+    document.getElementById("fileDeityHeroFullImage").addEventListener("change", async function () {
+        const files = this.files;
+        if (files.length === 0) {
+            document.getElementById("responseDeityHeroFull").value = "No image files selected.";
+            return;
+        }
+
+        const formData = new FormData();
+        const specialCharPattern = /[!@#$%^&*(),?":{}|<>]/;
+        const allowedExtensions = [".mp3", ".png", ".jpeg", ".jpg", ".wav"];
+        let errorMessage = "";
+
+        for (const file of files) {
+            const fileName = file.name;
+            const extension = fileName.slice(fileName.lastIndexOf(".")).toLowerCase();
+            const nameWithoutExtension = fileName.slice(0, fileName.lastIndexOf("."));
+
+            if (!allowedExtensions.includes(extension)) {
+                errorMessage += `File "${fileName}" has an unsupported file extension.\n`;
+                continue;
+            }
+
+            if (specialCharPattern.test(nameWithoutExtension)) {
+                errorMessage += `File "${fileName}" has special characters in its name.\n`;
+            } else {
+                const newFileName = nameWithoutExtension.toLowerCase().replace(/\s+/g, "_") + extension;
+                const renamedFile = new File([file], newFileName, { type: file.type });
+                formData.append("files", renamedFile);
+            }
+        }
+
+        if (errorMessage) {
+            document.getElementById("responseDeityHeroFull").value = errorMessage;
+            return;
+        }
+
+        const apiUrl1 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/deity_hero_full_image";
+        const apiUrl2 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/pvt_deity_hero_full_image";
+
+        try {
+            document.getElementById("responseDeityHeroFull").value = `Uploading ${files.length} image file(s)...`;
+
+            const responses = await Promise.all([
+                fetch(apiUrl1, { method: 'POST', body: formData }),
+                fetch(apiUrl2, { method: 'POST', body: formData })
+            ]);
+
+            const results = await Promise.all(responses.map(res => res.json()));
+            document.getElementById("responseDeityHeroFull").value =
+                `API 1 Response:\n${JSON.stringify(results[0], null, 2)}\n\nAPI 2 Response:\n${JSON.stringify(results[1], null, 2)}`;
+        } catch (error) {
+            document.getElementById("responseDeityHeroFull").value = `Error: ${error.message}`;
+        }
+    });
+
+    document.getElementById("fileDeityHeroShareImage").addEventListener("change", async function () {
+        const files = this.files;
+        if (files.length === 0) {
+            document.getElementById("responseDeityHeroShare").value = "No image files selected.";
+            return;
+        }
+
+        const formData = new FormData();
+        const specialCharPattern = /[!@#$%^&*(),?":{}|<>]/;
+        const allowedExtensions = [".mp3", ".png", ".jpeg", ".jpg", ".wav"];
+        let errorMessage = "";
+
+        for (const file of files) {
+            const fileName = file.name;
+            const extension = fileName.slice(fileName.lastIndexOf(".")).toLowerCase();
+            const nameWithoutExtension = fileName.slice(0, fileName.lastIndexOf("."));
+
+            if (!allowedExtensions.includes(extension)) {
+                errorMessage += `File "${fileName}" has an unsupported file extension.\n`;
+                continue;
+            }
+
+            if (specialCharPattern.test(nameWithoutExtension)) {
+                errorMessage += `File "${fileName}" has special characters in its name.\n`;
+            } else {
+                const newFileName = nameWithoutExtension.toLowerCase().replace(/\s+/g, "_") + extension;
+                const renamedFile = new File([file], newFileName, { type: file.type });
+                formData.append("files", renamedFile);
+            }
+        }
+
+        if (errorMessage) {
+            document.getElementById("responseDeityHeroShare").value = errorMessage;
+            return;
+        }
+
+        const apiUrl1 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/deity_hero_share_image";
+        const apiUrl2 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/pvt_deity_hero_share_image";
+
+        try {
+            document.getElementById("responseDeityHeroShare").value = `Uploading ${files.length} image file(s)...`;
+
+            const responses = await Promise.all([
+                fetch(apiUrl1, { method: 'POST', body: formData }),
+                fetch(apiUrl2, { method: 'POST', body: formData })
+            ]);
+
+            const results = await Promise.all(responses.map(res => res.json()));
+            document.getElementById("responseDeityHeroShare").value =
+                `API 1 Response:\n${JSON.stringify(results[0], null, 2)}\n\nAPI 2 Response:\n${JSON.stringify(results[1], null, 2)}`;
+        } catch (error) {
+            document.getElementById("responseDeityHeroShare").value = `Error: ${error.message}`;
+        }
+    });
+
+    document.getElementById("fileDeityDoDImage").addEventListener("change", async function () {
+        const files = this.files;
+        if (files.length === 0) {
+            document.getElementById("responseDeityDoD").value = "No image files selected.";
+            return;
+        }
+
+        const formData = new FormData();
+        const specialCharPattern = /[!@#$%^&*(),?":{}|<>]/;
+        const allowedExtensions = [".mp3", ".png", ".jpeg", ".jpg", ".wav"];
+        let errorMessage = "";
+
+        for (const file of files) {
+            const fileName = file.name;
+            const extension = fileName.slice(fileName.lastIndexOf(".")).toLowerCase();
+            const nameWithoutExtension = fileName.slice(0, fileName.lastIndexOf("."));
+
+            if (!allowedExtensions.includes(extension)) {
+                errorMessage += `File "${fileName}" has an unsupported file extension.\n`;
+                continue;
+            }
+
+            if (specialCharPattern.test(nameWithoutExtension)) {
+                errorMessage += `File "${fileName}" has special characters in its name.\n`;
+            } else {
+                const newFileName = nameWithoutExtension.toLowerCase().replace(/\s+/g, "_") + extension;
+                const renamedFile = new File([file], newFileName, { type: file.type });
+                formData.append("files", renamedFile);
+            }
+        }
+
+        if (errorMessage) {
+            document.getElementById("responseDeityDoD").value = errorMessage;
+            return;
+        }
+
+        const apiUrl1 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/deity_dod_image";
+        const apiUrl2 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/pvt_deity_dod_image";
+
+        try {
+            document.getElementById("responseDeityDoD").value = `Uploading ${files.length} image file(s)...`;
+
+            const responses = await Promise.all([
+                fetch(apiUrl1, { method: 'POST', body: formData }),
+                fetch(apiUrl2, { method: 'POST', body: formData })
+            ]);
+
+            const results = await Promise.all(responses.map(res => res.json()));
+            document.getElementById("responseDeityDoD").value =
+                `API 1 Response:\n${JSON.stringify(results[0], null, 2)}\n\nAPI 2 Response:\n${JSON.stringify(results[1], null, 2)}`;
+        } catch (error) {
+            document.getElementById("responseDeityDoD").value = `Error: ${error.message}`;
+        }
+    });
+
 </script>
 </body>
 </html>
