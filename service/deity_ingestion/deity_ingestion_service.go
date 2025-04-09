@@ -146,6 +146,13 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		if ok && len(regionsStr) != 0 {
 			regions = util.GetSplittedString(regionsStr)
 		}
+		var status bool
+		statusStr, ok := record["Status"].(string)
+		if statusStr == "TRUE" {
+			status = true
+		} else if statusStr == "FALSE" {
+			status = false
+		}
 		descriptionDefault, ok := record["Description (Default)"].(string)
 		if !ok {
 			return nil, fmt.Errorf("description unavailable for row : %d", id)
@@ -223,6 +230,7 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 				DeityOfTheDay:   deityOfTheDay,
 			},
 			FestivalIds: festivalIds,
+			Status:      status,
 		}
 		deityIdMap[tmpId] = deity.Id
 		deities = append(deities, deity)

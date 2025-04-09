@@ -18,6 +18,7 @@ type DeityDocument struct {
 	AliasesV1      map[string][]string `json:"aliases_v1" bson:"aliases_v1"`
 	CreatedAt      time.Time           `bson:"created_at"`
 	UpdatedAt      time.Time           `bson:"updated_at"`
+	Status         bool                `bson:"status"`
 }
 
 type DeityUIInfo struct {
