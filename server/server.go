@@ -12,6 +12,7 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/prarthana_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/search_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_translation"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/stotra_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
 	"github.com/gin-gonic/gin"
@@ -31,8 +32,9 @@ func InitServer(ctx context.Context, app *app.App, configuration *configuration.
 	prarthanaIngestionService := prarthana_ingestion.InitPrathanaIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
 	deityIngestionService := deity_ingestion.InitDeityIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
 	searchIngestionService := search_ingestion.InitSearchIngestionService(ctx, prarthanaDataMongoRepository, prarthanaESRepository)
+	shlokTranslationService := shlok_translation.InitShlokTranslationService(ctx, zohoService)
 
-	facadeService := facade.InitFacadeService(ctx, configuration, shlokIngestionService, stotraIngestionService, prarthanaIngestionService, deityIngestionService, zohoService, searchIngestionService)
+	facadeService := facade.InitFacadeService(ctx, configuration, shlokIngestionService, stotraIngestionService, prarthanaIngestionService, deityIngestionService, zohoService, searchIngestionService, shlokTranslationService)
 	registerMiddleware(app, configuration)
 	registerRoutes(ctx, app, facadeService, configuration)
 
