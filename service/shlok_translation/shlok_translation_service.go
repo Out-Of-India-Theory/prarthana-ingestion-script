@@ -3,6 +3,7 @@ package shlok_translation
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
@@ -50,17 +51,32 @@ func (s *ShlokTranslationService) GenerateShlokaTranslation(ctx context.Context,
 	if startId < 0 || endId < 0 || startId > endId {
 		return errors.New("invalid range of Id's")
 	}
-	//to encorporate the translated text
+
 	translatedRecords := entity.ShlokaSheetResponse{}
-	for _, record := range response.Records {
-		translatedRecord := record
-		languages := []string{"english", "kannada", "hindi", "telugu", "bengali", "marathi", "tamil", "gujarati", "odiya", "malayalam", "assamese", "punjabi"}
+	languages := []string{"english", "kannada", "hindi", "telugu", "bengali", "marathi", "tamil", "gujarati", "odiya", "malayalam", "assamese", "punjabi"}
+
+	for i := startId - 1; i < len(response.Records); i++ {
+		record := response.Records[i]
+		newRecord := make(map[string]interface{})
+		newRecord["ID"] = record["ID"]
+		newRecord["Name (Optional)"] = record["Name (Optional)"]
+		newRecord["text_sanskrit"] = record["text_sanskrit"]
+		textSanskrit := record["text_sanskrit"].(string)
+
 		for _, lang := range languages {
-			translatedText := s.GetTranslation(record["text_sanskrit"].(string), lang, true)
-			translatedRecord["translation_"+lang] = translatedText
+			textKey := "text_" + lang
+			translationKey := "translation_" + lang
+			translated := s.GetTranslation(textSanskrit, lang, true)
+			textKeyValue := s.GetTranslation(textSanskrit, lang, false)
+			newRecord[translationKey] = translated
+
+			newRecord[textKey] = textKeyValue
 		}
-		translatedRecords.Records = append(translatedRecords.Records, translatedRecord)
+
+		translatedRecords.Records = append(translatedRecords.Records, newRecord)
 	}
+
+	fmt.Printf("Translated records: %v\n", translatedRecords.Records)
 
 	err = s.zohoService.SetSheetData(ctx, "shloka", translatedRecords)
 	return err
