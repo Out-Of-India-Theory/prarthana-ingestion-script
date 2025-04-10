@@ -145,7 +145,7 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		shortDescriptionGujarati, ok := record["Short Description (Gujarati)"].(string)
 
 		//variantIds, ok := record["Prarthana Variant ID (Comma separated - Ordered)"].(string)
-		variantIds := fmt.Sprintf("%v", record["Prarthana Variant ID (Comma separated - Ordered)"])
+		variantIds := fmt.Sprintf("%v", record["Prarthana Variant ID"])
 		prarthana := entity.Prarthana{
 			TmpId: tmpId,
 			Id:    extId,

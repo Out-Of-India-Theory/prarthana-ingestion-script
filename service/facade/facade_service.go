@@ -6,7 +6,9 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/deity_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/prarthana_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/search_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_translation"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/stotra_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
 	"go.uber.org/zap"
@@ -20,6 +22,8 @@ type FacadeService struct {
 	prarthanaIngestionService prarthana_ingestion.Service
 	deityIngestionService     deity_ingestion.Service
 	zohoAuthService           zoho.Service
+	searchIngestionService    search_ingestion.Service
+	shlokTranslationService   shlok_translation.Service
 }
 
 func InitFacadeService(
@@ -30,7 +34,8 @@ func InitFacadeService(
 	prarthanaIngestionService prarthana_ingestion.Service,
 	deityIngestionService deity_ingestion.Service,
 	zohoAuthService zoho.Service,
-
+	searchIngestionService search_ingestion.Service,
+	shlokTranslationService shlok_translation.Service,
 ) *FacadeService {
 	return &FacadeService{
 		logger:                    logging.WithContext(ctx),
@@ -40,6 +45,8 @@ func InitFacadeService(
 		prarthanaIngestionService: prarthanaIngestionService,
 		deityIngestionService:     deityIngestionService,
 		zohoAuthService:           zohoAuthService,
+		searchIngestionService:    searchIngestionService,
+		shlokTranslationService:   shlokTranslationService,
 	}
 }
 
@@ -61,4 +68,12 @@ func (s *FacadeService) DeityIngestionService() deity_ingestion.Service {
 
 func (s *FacadeService) ZohoAuthService() zoho.Service {
 	return s.zohoAuthService
+}
+
+func (s *FacadeService) SearchIngestionService() search_ingestion.Service {
+	return s.searchIngestionService
+}
+
+func (s *FacadeService) ShlokTranslationService() shlok_translation.Service {
+	return s.shlokTranslationService
 }

@@ -16,4 +16,6 @@ type MongoRepository interface {
 	GetAllDeities(ctx context.Context) ([]entity.DeityDocument, error)
 	GeneratePrarthanaTmpIdToIdMap(ctx context.Context) (map[string]string, error)
 	GenerateDeityTmpIdToIdMap(ctx context.Context) (map[string]string, error)
+	PullDeityDocs(ctx context.Context) []entity.DeityDocument
+	PullPrarthanaDocs(ctx context.Context) []entity.Prarthana
 }

@@ -1,5 +1,7 @@
 package entity
 
+import "time"
+
 type Chapter struct {
 	Order         int               `bson:"order"`
 	Timestamp     string            `bson:"timestamp"`
@@ -31,6 +33,8 @@ type Prarthana struct {
 	UiInfo             PrarthanaUIInfo     `bson:"ui_info"`
 	AvailableLanguages []KeyValue          `bson:"available_languages"`
 	IntentBased        bool                `bson:"intent_based"`
+	CreatedAt          time.Time           `bson:"created_at"`
+	UpdatedAt          time.Time           `bson:"updated_at"`
 }
 
 type AudioInfo struct {
@@ -48,4 +52,26 @@ type PrarthanaUIInfo struct {
 	AlbumArt        string `json:"album_art" bson:"album_art"`
 	DefaultImageUrl string `json:"default_image_url" bson:"default_image_url"`
 	TemplateNumber  string `json:"template_number"`
+}
+
+type PrarthanaSearchData struct {
+	ID               string   `json:"id"`
+	Title            string   `json:"title"`
+	Duration         string   `json:"duration"`
+	DeityNames       []string `json:"deity_names"`
+	Shloks           []string `json:"shloks"`
+	ImageURL         string   `json:"image_url"`
+	IsAudioAvailable bool     `json:"is_audio_available"`
+}
+
+type PrarthanaSearchDoc struct {
+	ID         string            `bson:"_id"`
+	TmpID      string            `bson:"TmpId"`
+	Title      map[string]string `bson:"title"`
+	Deity      []DeityDocument   `bson:"deity"`
+	Variants   []Variant         `bson:"variants"`
+	StotraDocs []Stotra          `bson:"stotra_docs"`
+	ShlokDocs  []Shlok           `bson:"shlok_docs"`
+	UIDetails  PrarthanaUIInfo   `bson:"ui_info"`
+	AudioInfo  AudioInfo         `json:"audio_info" bson:"audio_info"`
 }
