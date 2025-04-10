@@ -17,6 +17,11 @@ type Configuration struct {
 	AuthClientConfig HttpClientConfig
 	UIConfig         UIConfig
 	ESConfig         ESConfig
+	OpenAIConfig     OpenAIConfig
+}
+
+type OpenAIConfig struct {
+	Key string
 }
 
 type ESConfig struct {

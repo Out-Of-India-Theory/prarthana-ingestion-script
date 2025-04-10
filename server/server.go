@@ -7,6 +7,7 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/es/prarthana"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/openai"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/deity_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/facade"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/prarthana_ingestion"
@@ -24,6 +25,7 @@ func InitServer(ctx context.Context, app *app.App, configuration *configuration.
 	//repo initializations
 	prarthanaDataMongoRepository := prarthana_data.InitPrarthanaDataMongoRepository(ctx, *configuration)
 	prarthanaESRepository := prarthana.InitPrarthanaESRepository(ctx, configuration.ESConfig)
+	openaiClientRepository := openai.InitOpenAIClientRepository(ctx, *configuration)
 
 	zohoService := zoho.InitZohoService(ctx, configuration, &http.Client{})
 	//service initializations
@@ -32,7 +34,7 @@ func InitServer(ctx context.Context, app *app.App, configuration *configuration.
 	prarthanaIngestionService := prarthana_ingestion.InitPrathanaIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
 	deityIngestionService := deity_ingestion.InitDeityIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
 	searchIngestionService := search_ingestion.InitSearchIngestionService(ctx, prarthanaDataMongoRepository, prarthanaESRepository)
-	shlokTranslationService := shlok_translation.InitShlokTranslationService(ctx, zohoService)
+	shlokTranslationService := shlok_translation.InitShlokTranslationService(ctx, zohoService, openaiClientRepository)
 
 	facadeService := facade.InitFacadeService(ctx, configuration, shlokIngestionService, stotraIngestionService, prarthanaIngestionService, deityIngestionService, zohoService, searchIngestionService, shlokTranslationService)
 	registerMiddleware(app, configuration)

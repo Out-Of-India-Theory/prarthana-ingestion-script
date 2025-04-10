@@ -31,5 +31,8 @@
     "Auth": "xxxx",
     "DeityIndex": "staging-deity",
     "PrarthanaIndex": "prarthana"
+  },
+  "OpenAIConfig": {
+    "Key": "xxxx"
   }
 }
