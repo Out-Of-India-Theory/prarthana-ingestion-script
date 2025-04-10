@@ -3,12 +3,13 @@ package shlok_translation
 import (
 	"context"
 	"errors"
+	"log"
+
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/openai"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
 	"go.uber.org/zap"
-	"log"
 )
 
 type ShlokTranslationService struct {
@@ -46,6 +47,22 @@ func (s *ShlokTranslationService) GenerateShlokaTranslation(ctx context.Context,
 	if len(response.Records) == 0 {
 		return errors.New("no records found")
 	}
+	if startId < 0 || endId < 0 || startId > endId {
+		return errors.New("invalid range of Id's")
+	}
+	//to encorporate the translated text
+	translatedRecords := entity.ShlokaSheetResponse{}
+	for _, record := range response.Records {
+		translatedRecord := record
+		languages := []string{"english", "kannada", "hindi", "telugu", "bengali", "marathi", "tamil", "gujarati", "odiya", "malayalam", "assamese", "punjabi"}
+		for _, lang := range languages {
+			translatedText := s.GetTranslation(record["text_sanskrit"].(string), lang, true)
+			translatedRecord["translation_"+lang] = translatedText
+		}
+		translatedRecords.Records = append(translatedRecords.Records, translatedRecord)
+	}
+
+	err = s.zohoService.SetSheetData(ctx, "shloka", translatedRecords)
 	return err
 }
 

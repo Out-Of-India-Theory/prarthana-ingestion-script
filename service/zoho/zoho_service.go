@@ -7,6 +7,7 @@ import (
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
@@ -107,6 +108,44 @@ func (s *ZohoService) GetSheetData(ctx context.Context, sheetName string, respon
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
 	err = json.Unmarshal(bytes, &response)
+	if err != nil {
+		return fmt.Errorf("failed to parse response body: %w", err)
+	}
+	return nil
+}
+
+func (s *ZohoService) SetSheetData(ctx context.Context, sheetName string, translatedRecords entity.ShlokaSheetResponse) error {
+	accessToken := util.GetZohoAccessTokenFromContext(ctx)
+	url1 := fmt.Sprintf("https://sheet.zoho.in/api/v2/%s", s.configuration.ZohoConfig.SheetId)
+	data := url.Values{}
+	data.Set("method", "worksheet.records.add")
+	data.Set("worksheet_name", sheetName)
+	data.Set("header_row", "1")
+
+	// Create a new HTTP request with POST method
+	req, err := http.NewRequest(http.MethodPost, url1, strings.NewReader(data.Encode()))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set the required headers
+	req.Header.Set("Authorization", "Zoho-oauthtoken "+accessToken)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf("error response from server: %s", string(body))
+	}
+	bytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+	err = json.Unmarshal(bytes, &translatedRecords)
 	if err != nil {
 		return fmt.Errorf("failed to parse response body: %w", err)
 	}

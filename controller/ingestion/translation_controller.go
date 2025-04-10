@@ -18,7 +18,7 @@ func (con *Controller) ShlokTranslationGeneration(c *gin.Context) {
 		})
 		return
 	}
-	err := con.service.ShlokIngestionService().ShlokIngestion(ctx, request.StartID, request.EndID)
+	err := con.service.ShlokTranslationService().GenerateShlokaTranslation(ctx, request.StartID, request.EndID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  http.StatusInternalServerError,
