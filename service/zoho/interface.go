@@ -9,5 +9,6 @@ import (
 type Service interface {
 	RefreshAccessToken() (string, error)
 	GetSheetData(ctx context.Context, sheetName string, response interface{}) error
-	SetSheetData(ctx context.Context, sheetName string, translatedRecords entity.ShlokaSheetResponse) error
+	SetSheetData(ctx context.Context, sheetName string, data entity.ShlokaSheetResponse, startId int) error
+	AddUUIDToSheet(ctx context.Context, sheetName string, uuid string, row int) error
 }

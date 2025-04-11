@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
-	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"go.uber.org/zap"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -114,43 +116,90 @@ func (s *ZohoService) GetSheetData(ctx context.Context, sheetName string, respon
 	return nil
 }
 
-func (s *ZohoService) SetSheetData(ctx context.Context, sheetName string, translatedRecords entity.ShlokaSheetResponse) error {
+func (s *ZohoService) SetSheetData(ctx context.Context, sheetName string, data entity.ShlokaSheetResponse, startId int) error {
 	accessToken := util.GetZohoAccessTokenFromContext(ctx)
-	url1 := fmt.Sprintf("https://sheet.zoho.com/api/v2/%s", s.configuration.ZohoConfig.SheetId)
+	resourceID := s.configuration.ZohoConfig.SheetId
+	url1 := fmt.Sprintf("https://sheet.zoho.in/api/v2/%s", resourceID)
 
-	// Marshal the records to JSON
-	jsonData, err := json.Marshal(translatedRecords.Records)
-	if err != nil {
-		return fmt.Errorf("failed to marshal records: %w", err)
+	columnMap := map[string]int{
+		"ID": 1, "Name (Optional)": 2, "text_sanskrit": 3, "text_english": 4, "translation_english": 5,
+		"text_kannada": 6, "translation_kannada": 7, "text_hindi": 8, "translation_hindi": 9,
+		"text_telugu": 10, "translation_telugu": 11, "text_bengali": 12, "translation_bengali": 13,
+		"text_marathi": 14, "translation_marathi": 15, "text_tamil": 16, "translation_tamil": 17,
+		"text_gujarati": 18, "translation_gujarati": 19, "text_odiya": 20, "translation_odiya": 21,
+		"text_malayalam": 22, "translation_malayalam": 23, "text_assamese": 24, "translation_assamese": 25,
+		"text_punjabi": 26, "translation_punjabi": 27,
 	}
 
-	data := url.Values{}
-	data.Set("method", "worksheet.records.add")
-	data.Set("worksheet_name", sheetName)
-	data.Set("header_row", "1")
-	data.Set("json_data", string(jsonData))
+	for i, record := range data.Records {
+		for key, val := range record {
+			colIndex, ok := columnMap[key]
+			if !ok {
+				continue
+			}
+			content := fmt.Sprintf("%v", val)
+			if strings.TrimSpace(content) == "" {
+				continue
+			}
+			row := startId + i + 1
+			postData := url.Values{}
+			postData.Set("method", "cell.content.set")
+			postData.Set("worksheet_name", sheetName)
+			postData.Set("row", strconv.Itoa(row))
+			postData.Set("column", strconv.Itoa(colIndex))
+			postData.Set("content", content)
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url1, strings.NewReader(postData.Encode()))
+			if err != nil {
+				return fmt.Errorf("failed to create request: %w", err)
+			}
+			req.Header.Set("Authorization", "Zoho-oauthtoken "+accessToken)
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	// Create POST request
-	req, err := http.NewRequest(http.MethodPost, url1, strings.NewReader(data.Encode()))
+			resp, err := s.httpClient.Do(req)
+			if err != nil {
+				return fmt.Errorf("Zoho API request failed: %w", err)
+			}
+			defer resp.Body.Close()
+
+			body, _ := io.ReadAll(resp.Body)
+			if resp.StatusCode != http.StatusOK {
+				return fmt.Errorf("Zoho API error: %s", string(body))
+			}
+		}
+	}
+	return nil
+}
+
+func (s *ZohoService) AddUUIDToSheet(ctx context.Context, sheetName string, uuid string, row int) error {
+	accessToken := util.GetZohoAccessTokenFromContext(ctx)
+	resourceID := s.configuration.ZohoConfig.SheetId
+	url1 := fmt.Sprintf("https://sheet.zoho.in/api/v2/%s", resourceID)
+
+	const uuidColumnIndex = 1
+
+	postData := url.Values{}
+	postData.Set("method", "cell.content.set")
+	postData.Set("worksheet_name", sheetName)
+	postData.Set("row", strconv.Itoa(row))
+	postData.Set("column", strconv.Itoa(uuidColumnIndex))
+	postData.Set("content", uuid)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url1, strings.NewReader(postData.Encode()))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-
-	// Set headers
 	req.Header.Set("Authorization", "Zoho-oauthtoken "+accessToken)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	// Send request
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to send request: %w", err)
+		return fmt.Errorf("Zoho API request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Read response body
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error response from server: %s", string(body))
+		return fmt.Errorf("Zoho API error: %s", string(body))
 	}
 
 	return nil
