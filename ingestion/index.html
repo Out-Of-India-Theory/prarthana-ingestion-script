@@ -307,18 +307,22 @@
 
         const apiUrl1 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/pvt_audio_folder";
         const apiUrl2 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/audio_folder";
+        const apiUrl3 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/stitched_folder";
+        const apiUrl4 = "http://internal-staging-internal-lb-428946047.ap-south-1.elb.amazonaws.com:8080/platform/document/v1/multiple-upload/pvt_stitched_folder";
 
         try {
             document.getElementById("responseAudio").value = `Uploading ${files.length} audio file(s)...`;
 
             const responses = await Promise.all([
                 fetch(apiUrl1, { method: 'POST', body: formData }),
-                fetch(apiUrl2, { method: 'POST', body: formData })
+                fetch(apiUrl2, { method: 'POST', body: formData }),
+                fetch(apiUrl3, { method: 'POST', body: formData }),
+                fetch(apiUrl4, { method: 'POST', body: formData })
             ]);
 
             const results = await Promise.all(responses.map(res => res.json()));
             document.getElementById("responseAudio").value =
-                `API 1 Response:\n${JSON.stringify(results[0], null, 2)}\n\nAPI 2 Response:\n${JSON.stringify(results[1], null, 2)}`;
+                `API 1 Response:\n${JSON.stringify(results[0], null, 2)}\n\nAPI 2 Response:\n${JSON.stringify(results[1], null, 2)}\n\nAPI 2 Response:\n${JSON.stringify(results[2], null, 2)}\n\nAPI 2 Response:\n${JSON.stringify(results[3], null, 2)}`;
         } catch (error) {
             document.getElementById("responseAudio").value = `Error: ${error.message}`;
         }

@@ -6,9 +6,9 @@ type DeityDocument struct {
 	TmpId          string              `bson:"TmpId"`
 	Id             string              `bson:"_id" json:"_id"`
 	Order          int                 `json:"order" bson:"order"`
-	Title          map[string]string   `json:"title" bson:"title"`
+	Title          map[string]string   `json:"title" bson:"title,omitempty"`
 	Slug           string              `json:"slug" bson:"slug"`
-	Aliases        []string            `json:"aliases" bson:"aliases"`
+	Aliases        []string            `json:"aliases" bson:"aliases,omitempty"`
 	SearchKeywords []string            `json:"search_keywords" bson:"search_keywords"`
 	Description    map[string]string   `json:"description" bson:"description"`
 	UIInfo         DeityUIInfo         `json:"ui_info" bson:"ui_info"`
@@ -24,7 +24,7 @@ type DeityDocument struct {
 type DeityUIInfo struct {
 	DefaultImage    string           `json:"default_image" bson:"default_image"`
 	BackgroundImage string           `json:"background_image" bson:"background_image"`
-	DeityOfTheDay   string           `json:"deity_of_the_day" bson:"deity_of_the_day"`
+	DeityOfTheDay   string           `json:"deity_of_the_day" bson:"deity_of_the_day,omitempty"`
 	HeroImageAlbum  []HeroImageAlbum `json:"hero_image_album" bson:"hero_image_album"`
 }
 

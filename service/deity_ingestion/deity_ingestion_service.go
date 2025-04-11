@@ -128,10 +128,15 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		}
 
 		var deityOfTheDay string
-		if dodFlag, ok := record["DOD Flag"].(bool); ok && dodFlag {
+		//if dodFlag, ok := record["DOD Flag"].(bool); ok && dodFlag {
+		//	deityOfTheDay = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/dod_image/%s.png", formattedtitle)
+		//}
+		deityOfTheDayStr, ok := record["DOD Flag"]
+		if deityOfTheDayStr == "Yes" {
 			deityOfTheDay = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/dod_image/%s.png", formattedtitle)
+		} else if deityOfTheDayStr == "No" {
+			deityOfTheDay = ""
 		}
-
 		aliases, ok := record["Also known as"].(string)
 		if !ok {
 			aliases = ""
@@ -257,25 +262,34 @@ func (s *DeityIngestionService) preparePrarthanaToDeityMap(ctx context.Context) 
 	}
 	pdmap := make(map[string]string)
 	dpMap := make(map[string][]string)
-	for _, record := range response.Records {
-		prarthanaIdf, ok := record["Prarthana ID"].(float64)
-		if !ok {
-			return nil, nil, errors.New("prarthana ID is not a float")
-		}
-		deityIdString := fmt.Sprintf("%v", record["Diety ID"])
+	for i, record := range response.Records {
+		var prarthanaIds []string
 
-		//deityIdf, ok := record["Diety ID"].(float64)
+		switch v := record["Prarthana ID"].(type) {
+		case float64:
+			prarthanaIds = []string{strconv.FormatFloat(v, 'f', -1, 64)}
+		case string:
+			if v == "" {
+				return nil, nil, fmt.Errorf("row %d: prarthana ID is empty string", i+2) // +2 to match sheet row (1-indexed + header)
+			}
+			prarthanaIds = util.GetSplittedString(v)
+		default:
+			return nil, nil, fmt.Errorf("row %d: invalid prarthana ID type", i+2)
+		}
+
+		deityIdString := fmt.Sprintf("%v", record["Diety ID"])
 		if len(deityIdString) == 0 {
-			return nil, nil, errors.New("diety ID is not a float")
+			// Skip mapping if deity ID is empty
+			continue
 		}
 		deityIds := util.GetSplittedString(deityIdString)
-		prarthanaId := strconv.FormatFloat(prarthanaIdf, 'f', -1, 64)
-		//deityId := fmt.Sprintf("%f", deityIdf)
-		for _, id := range deityIds {
-			pdmap[prarthanaId] = id
-			dpMap[id] = append(dpMap[id], prarthanaId)
-		}
 
+		for _, prarthanaId := range prarthanaIds {
+			for _, deityId := range deityIds {
+				pdmap[prarthanaId] = deityId
+				dpMap[deityId] = append(dpMap[deityId], prarthanaId)
+			}
+		}
 	}
 	return pdmap, dpMap, nil
 }
