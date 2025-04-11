@@ -118,8 +118,8 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		}
 
 		studioRecorded := false
-		studioRecordedStr, ok := record["Studio Recorded(yes/no)"].(string)
-		if ok && studioRecordedStr == "yes" {
+		studioRecordedStr, ok := record["Studio Recorded"].(string)
+		if ok && studioRecordedStr == "TRUE" {
 			studioRecorded = true
 		}
 		festivalIdsStr, ok := record["Festival Ids"].(string)
@@ -145,7 +145,7 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		shortDescriptionGujarati, ok := record["Short Description (Gujarati)"].(string)
 
 		//variantIds, ok := record["Prarthana Variant ID (Comma separated - Ordered)"].(string)
-		variantIds := fmt.Sprintf("%v", record["Prarthana Variant ID (Comma separated - Ordered)"])
+		variantIds := fmt.Sprintf("%v", record["Prarthana Variant ID"])
 		prarthana := entity.Prarthana{
 			TmpId: tmpId,
 			Id:    extId,
@@ -170,14 +170,14 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 			ItemsRequired: map[string][]string{},
 			IntentBased:   intentBasedFlag,
 		}
-		templateNumberS, ok := record["Template Number Int"].(string)
-		if !ok {
-			return nil, errors.New("Missing prarthana template number")
-		}
-		templateNumber, err := strconv.Atoi(templateNumberS)
-		if err != nil {
-			return nil, err
-		}
+		//templateNumberS, ok := record["Template Number Int"].(string)
+		//if !ok {
+		//	return nil, errors.New("Missing prarthana template number")
+		//}
+		templateNumber := fmt.Sprintf("%v", record["Template Number Int"])
+		//if err != nil {
+		//	return nil, fmt.Errorf("invalid 'Template Number Int' value for record ID: %d (Row number: %d): %v", id, i+1, err)
+		//}
 		prarthana.UiInfo = entity.PrarthanaUIInfo{
 			AlbumArt:        fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt),
 			DefaultImageUrl: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt),
