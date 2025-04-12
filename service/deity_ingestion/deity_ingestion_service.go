@@ -92,7 +92,12 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 
 		deityUuid := record["UUID"].(string)
 		if strings.TrimSpace(deityUuid) == "" {
-			deityUuid = uuid.NewString()
+			generateUuid := uuid.NewString()
+			deityUuid = generateUuid
+			err := s.zohoService.AddUUIDToSheet(ctx, "deities", deityUuid, i+2)
+			if err != nil {
+				return nil, fmt.Errorf("failed to update UUID to sheet for row %d: %w", i+2, err)
+			}
 		}
 		tmpId := fmt.Sprintf("%d", id)
 		if val, found := tmpIdToDeityIdMap[tmpId]; found {

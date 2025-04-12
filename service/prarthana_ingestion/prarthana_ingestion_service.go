@@ -93,8 +93,12 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 
 		extId, ok := record["UUID"].(string)
 		if !ok {
-			extId = uuid.NewString()
-			//return nil, errors.New("Missing UUID")
+			generateUuid := uuid.NewString()
+			extId = generateUuid
+			err := s.zohoService.AddUUIDToSheet(ctx, "deities", extId, i+2)
+			if err != nil {
+				return nil, fmt.Errorf("failed to update UUID to sheet for row %d: %w", i+2, err)
+			}
 		}
 
 		albumArt, ok := record["Album Art File Name"].(string)

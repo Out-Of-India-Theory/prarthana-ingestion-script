@@ -119,7 +119,9 @@ func (r *PrarthanaDataMongoRepository) InsertManyDeities(ctx context.Context, de
 		if result.Err() != nil {
 			if result.Err() == mongo.ErrNoDocuments {
 				log.Printf("No existing document found for ID: %v. Inserting new deity.\n", deity.Id)
-				deity.Id = uuid.NewString()
+				if deity.Id == "" {
+					deity.Id = uuid.NewString()
+				}
 				deity.CreatedAt = now
 				_, err := r.deityCollection.InsertOne(ctx, deity)
 				if err != nil {
@@ -177,7 +179,9 @@ func (r *PrarthanaDataMongoRepository) InsertManyPrarthanas(ctx context.Context,
 		if result.Err() != nil {
 			if result.Err() == mongo.ErrNoDocuments {
 				log.Printf("No existing document found for ID: %v. Inserting new prarthana.\n", prarthana.Id)
-				prarthana.Id = uuid.NewString()
+				if prarthana.Id == "" {
+					prarthana.Id = uuid.NewString()
+				}
 				prarthana.CreatedAt = now // set createdAt on insert
 				_, err := r.prarthanaCollection.InsertOne(ctx, prarthana)
 				if err != nil {
