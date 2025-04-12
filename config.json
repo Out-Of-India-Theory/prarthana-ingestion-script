@@ -11,7 +11,7 @@
   "MongoConfig": {
     "URI": "config_uri",
     "Timeout": "5s",
-    "Database": "prarthana_service_tmp"
+    "Database": "prarthana_service_stage"
   },
   "zohoconfig": {
     "clientid": "XXXX",
@@ -30,7 +30,7 @@
     "Host": "https://vpc-panchanga-service-o4til57zbor4yogtrvqcjx75l4.ap-south-1.es.amazonaws.com",
     "Auth": "xxxx",
     "DeityIndex": "staging-deity",
-    "PrarthanaIndex": "prarthana"
+    "PrarthanaIndex": "staging-prarthana"
   },
   "OpenAIConfig": {
     "Key": "xxxx"
