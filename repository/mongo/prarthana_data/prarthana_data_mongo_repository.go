@@ -406,7 +406,7 @@ func (r *PrarthanaDataMongoRepository) PullDeityDocs(ctx context.Context) []enti
 			log.Fatal(err)
 		}
 		deities = append(deities, result)
-		fmt.Println(result)
+		//fmt.Println(result)
 	}
 	if err := cursor.Err(); err != nil {
 		log.Fatal(err)
@@ -449,7 +449,7 @@ func (r *PrarthanaDataMongoRepository) PullPrarthanaDocs(ctx context.Context) []
 			log.Fatal(err)
 		}
 		prarthanas = append(prarthanas, result)
-		fmt.Println(result)
+		//fmt.Println(result)
 	}
 	if err := cursor.Err(); err != nil {
 		log.Fatal(err)
