@@ -34,7 +34,7 @@ on:
 
 env:
   AWS_REGION: ap-south-1
-  ECR_REPOSITORY: prarthana-ingestion-script
+  ECR_REPOSITORY: prarthana-ingestion
 
 #permissions:
 #  contents: read
