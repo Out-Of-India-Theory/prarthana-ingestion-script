@@ -13,15 +13,15 @@
     "Timeout": "5s",
     "Database": "prarthana_service_stage"
   },
-  "zohoconfig": {
-    "clientid": "XXXX",
-    "clientsecret": "XXXXX",
-    "redirecturl": "https://dharmayana.in",
+  "ZohoConfig": {
+    "ClientId": "XXXX",
+    "ClientSecret": "XXXXX",
+    "RedirectUrl": "https://dharmayana.in",
     "scopes": "zohosheet.dataapi.update,zohosheet.dataapi.read",
-    "authurl": "https://accounts.zoho.in/oauth/v2/auth",
-    "tokenurl": "https://accounts.zoho.in/oauth/v2/token",
-    "refreshtoken": "XXX",
-    "sheetid": "XXX"
+    "AuthUrl": "https://accounts.zoho.in/oauth/v2/auth",
+    "TokenUrl": "https://accounts.zoho.in/oauth/v2/token",
+    "RefreshToken": "XXX",
+    "SheetId": "XXX"
   },
   "UIConfig": {
     "BackendHost": "http://localhost:8080"
