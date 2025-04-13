@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/entity"
-	mongoRepo "github.com/Out-Of-India-Theory/prarthana-automated-script/repository/mongo/prarthana_data"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/zoho"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/util"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
+	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"log"
@@ -83,6 +83,7 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		nameMarathi, ok := record["Name (Mandatory) (Marathi)"].(string)
 		nameTamil, ok := record["Name (Mandatory) (Tamil)"].(string)
 		nameTelugu, ok := record["Name (Mandatory) (Telugu)"].(string)
+		nameGujarati, ok := record["Name (Mandatory) (Gujarati)"].(string)
 
 		re := regexp.MustCompile(`[^a-zA-Z0-9\s\-\(\)]+`)
 		if re.MatchString(nameDefault) {
@@ -92,11 +93,15 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 
 		extId, ok := record["UUID"].(string)
 		if !ok {
-			extId = uuid.NewString()
-			//return nil, errors.New("Missing UUID")
+			generateUuid := uuid.NewString()
+			extId = generateUuid
+			err := s.zohoService.AddUUIDToSheet(ctx, "deities", extId, i+2)
+			if err != nil {
+				return nil, fmt.Errorf("failed to update UUID to sheet for row %d: %w", i+2, err)
+			}
 		}
 
-		albumArt, ok := record["Album Art"].(string)
+		albumArt, ok := record["Album Art File Name"].(string)
 		if !ok {
 			return nil, errors.New("Missing prarthana album art")
 		}
@@ -117,14 +122,19 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		}
 
 		studioRecorded := false
-		studioRecordedStr, ok := record["Studio Recorded(yes/no)"].(string)
-		if ok && studioRecordedStr == "yes" {
+		studioRecordedStr, ok := record["Studio Recorded"].(string)
+		if ok && studioRecordedStr == "TRUE" {
 			studioRecorded = true
 		}
 		festivalIdsStr, ok := record["Festival Ids"].(string)
 		festivalIds := []string{}
 		if ok && len(festivalIdsStr) != 0 {
 			festivalIds = util.GetSplittedString(festivalIdsStr)
+		}
+		intentBasedFlag := false
+		intentBasedStr, ok := record["Intent Based"].(string)
+		if ok && intentBasedStr == "true" {
+			intentBasedFlag = true
 		}
 
 		shortDescriptionDefault, ok := record["Short Description (Default)"].(string)
@@ -136,9 +146,9 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		shortDescriptionMarathi, ok := record["Short Description (Marathi)"].(string)
 		shortDescriptionTamil, ok := record["Short Description (Tamil)"].(string)
 		shortDescriptionTelugu, ok := record["Short Description (Telugu)"].(string)
+		shortDescriptionGujarati, ok := record["Short Description (Gujarati)"].(string)
 
-		//variantIds, ok := record["Prarthana Variant ID (Comma separated - Ordered)"].(string)
-		variantIds := fmt.Sprintf("%v", record["Prarthana Variant ID (Comma separated - Ordered)"])
+		variantIds := fmt.Sprintf("%v", record["Prarthana Variant ID"])
 		prarthana := entity.Prarthana{
 			TmpId: tmpId,
 			Id:    extId,
@@ -149,6 +159,7 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 				"mr":      nameMarathi,
 				"ta":      nameTamil,
 				"te":      nameTelugu,
+				"gu":      nameGujarati,
 			},
 			FestivalIds: festivalIds,
 			Days:        util.GetDaysFromTitle(nameDefault),
@@ -156,23 +167,17 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 				IsAudioAvailable: true,
 				IsStudioRecorded: studioRecorded},
 			Variants:      []entity.Variant{variantMap[variantIds]},
-			Description:   map[string]string{"default": shortDescriptionDefault, "hi": shortDescriptionHindi, "kn": shortDescriptionKannada, "mr": shortDescriptionMarathi, "ta": shortDescriptionTamil, "te": shortDescriptionTelugu},
+			Description:   map[string]string{"default": shortDescriptionDefault, "hi": shortDescriptionHindi, "kn": shortDescriptionKannada, "mr": shortDescriptionMarathi, "ta": shortDescriptionTamil, "te": shortDescriptionTelugu, "gu": shortDescriptionGujarati},
 			Importance:    map[string]string{},
 			Instruction:   map[string]string{},
 			ItemsRequired: map[string][]string{},
+			IntentBased:   intentBasedFlag,
 		}
-		templateNumberS, ok := record["Template Number"].(string)
-		if !ok {
-			return nil, errors.New("Missing prarthana template number")
-		}
-		templateNumber, err := strconv.Atoi(templateNumberS)
-		if err != nil {
-			return nil, err
-		}
+		templateNumber := fmt.Sprintf("%v", record["Template Number Int"])
 		prarthana.UiInfo = entity.PrarthanaUIInfo{
 			AlbumArt:        fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt),
 			DefaultImageUrl: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt),
-			TemplateNumber:  fmt.Sprintf("template_%s", templateNumber),
+			TemplateNumber:  fmt.Sprintf("template_%v", templateNumber),
 		}
 
 		prarthana.AvailableLanguages = []entity.KeyValue{
@@ -219,7 +224,27 @@ func (s *PrarthanaIngestionService) prepareChapterMap(ctx context.Context, stotr
 		}
 		minutes := int(math.Max(1, math.Round((float64(duration) / float64(60)))))
 		durationStr := fmt.Sprintf("%dm", minutes)
-		name, ok := record["Name (Mandatory)"].(string)
+		defaultName, ok := record["Name (Mandatory) Default"].(string)
+		if !ok {
+			return nil, errors.New("no name found")
+		}
+		hindiName, ok := record["Name (Mandatory) Hindi"].(string)
+		if !ok {
+			return nil, errors.New("no name found")
+		}
+		kannadaName, ok := record["Name (Mandatory) Kannada"].(string)
+		if !ok {
+			return nil, errors.New("no name found")
+		}
+		tamilName, ok := record["Name (Mandatory) Tamil"].(string)
+		if !ok {
+			return nil, errors.New("no name found")
+		}
+		teluguName, ok := record["Name (Mandatory) Telugu"].(string)
+		if !ok {
+			return nil, errors.New("no name found")
+		}
+		gujaratiName, ok := record["Name (Mandatory) Gujarati"].(string)
 		if !ok {
 			return nil, errors.New("no name found")
 		}
@@ -232,7 +257,12 @@ func (s *PrarthanaIngestionService) prepareChapterMap(ctx context.Context, stotr
 			Timestamp: "1m",
 			Duration:  durationStr,
 			Title: map[string]string{
-				"default": name,
+				"default": defaultName,
+				"hi":      hindiName,
+				"kn":      kannadaName,
+				"ta":      tamilName,
+				"te":      teluguName,
+				"gu":      gujaratiName,
 			},
 			DurationInSec: duration,
 			StotraIds:     stotraIds,
@@ -257,7 +287,7 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 		//chapterIds := util.GetSplittedString(record[fieldMap["Adhyaya ID (Comma separated - Ordered)"]])
 		chapterIds := util.GetSplittedString(fmt.Sprintf("%v", record["Adhyaya ID (Comma separated - Ordered)"]))
 		if len(chapterIds) == 0 {
-			return nil, errors.New("no stotra ID")
+			return nil, errors.New("no chapter ID")
 		}
 		chapters := make([]entity.Chapter, 0)
 		for _, id := range chapterIds {

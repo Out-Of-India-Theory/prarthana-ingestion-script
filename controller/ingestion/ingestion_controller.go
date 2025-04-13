@@ -3,10 +3,10 @@ package ingestion
 import (
 	"context"
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/configuration"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/entity"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/facade"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/util"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/facade"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
@@ -117,6 +117,42 @@ func (con *Controller) DeityIngestion(c *gin.Context) {
 		return
 	}
 	_, err := con.service.DeityIngestionService().DeityIngestion(ctx, requestBody.StartID, requestBody.EndID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Error processing request: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  http.StatusOK,
+		"message": "Successful",
+		"data":    nil,
+	})
+}
+
+func (con *Controller) DeitySearchIngestion(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	err := con.service.SearchIngestionService().InsertDeitySearchData(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Error processing request: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  http.StatusOK,
+		"message": "Successful",
+		"data":    nil,
+	})
+}
+
+func (con *Controller) PrarthanaSearchIngestion(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	err := con.service.SearchIngestionService().InsertPrarthanaSearchData(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  http.StatusInternalServerError,

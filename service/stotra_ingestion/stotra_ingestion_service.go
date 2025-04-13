@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/entity"
-	mongoRepo "github.com/Out-Of-India-Theory/prarthana-automated-script/repository/mongo/prarthana_data"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/zoho"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/util"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
+	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/go-audio/wav"
 	"github.com/hajimehoshi/go-mp3"
 	"go.uber.org/zap"
@@ -196,6 +196,7 @@ func (s *StotraIngestionService) StotraIngestion(ctx context.Context, startID, e
 				nameMarathi, ok := record["Name (Optional) (Marathi)"].(string)
 				nameTamil, ok := record["Name (Optional) (Tamil)"].(string)
 				nameTelugu, ok := record["Name (Optional) (Telugu)"].(string)
+				nameGujarati, ok := record["Name (Optional) (Gujarati)"].(string)
 
 				baseFilename := strings.ToLower(util.SanitizeString(nameDefault))
 				//strings.ToLower(strings.ReplaceAll(strings.TrimSuffix(name, "|"), " ", "_"))
@@ -258,11 +259,12 @@ func (s *StotraIngestionService) StotraIngestion(ctx context.Context, startID, e
 						"mr":      nameMarathi,
 						"ta":      nameTamil,
 						"te":      nameTelugu,
+						"gu":      nameGujarati,
 					},
 					ShlokIds:               util.GetSplittedString(shlokIds),
 					Duration:               durationStr,
-					DurationInSeconds:      durationInSeconds,
-					DurationInMilliseconds: durationInMilliseconds,
+					DurationInSeconds:      durationInSeconds / 2,
+					DurationInMilliseconds: durationInMilliseconds / 2,
 					StotraUrl:              stotraUrl,
 				}
 
@@ -330,10 +332,10 @@ func getDurationFromFile(filename string) (string, int, error) {
 		return "", 0, fmt.Errorf("unsupported file type: %s", ext)
 	}
 
-	minutes := int(math.Max(1, math.Round((float64(totalSeconds) / float64(60)))))
+	minutes := int(math.Max(1, math.Round((float64(totalSeconds/2) / float64(60)))))
 	durationStr := fmt.Sprintf("%dm", minutes)
 
-	return durationStr, totalSeconds, nil
+	return durationStr, totalSeconds / 2, nil
 }
 
 func getDurationFromFileInMilliseconds(filename string) (string, int, error) {

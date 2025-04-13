@@ -5,22 +5,34 @@
     "PrometheusPort": "8085",
     "PrometheusEnabled": false,
     "NewRelicEnabled": true,
-    "AppName": "prarthana-automated-script",
+    "AppName": "prarthana-ingestion-script",
     "NewRelicLicense": "XXX"
   },
   "MongoConfig": {
     "URI": "config_uri",
     "Timeout": "5s",
-    "Database": "prarthana_service_tmp"
+    "Database": "prarthana_service_stage"
   },
   "zohoconfig": {
     "clientid": "XXXX",
-    "clientsecret": "XXXX",
+    "clientsecret": "XXXXX",
     "redirecturl": "https://dharmayana.in",
     "scopes": "zohosheet.dataapi.update,zohosheet.dataapi.read",
     "authurl": "https://accounts.zoho.in/oauth/v2/auth",
     "tokenurl": "https://accounts.zoho.in/oauth/v2/token",
     "refreshtoken": "XXX",
     "sheetid": "XXX"
+  },
+  "UIConfig": {
+    "BackendHost": "http://localhost:8080"
+  },
+  "ESConfig": {
+    "Host": "https://vpc-panchanga-service-o4til57zbor4yogtrvqcjx75l4.ap-south-1.es.amazonaws.com",
+    "Auth": "xxxx",
+    "DeityIndex": "staging-deity",
+    "PrarthanaIndex": "staging-prarthana"
+  },
+  "OpenAIConfig": {
+    "Key": "xxxx"
   }
 }

@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/entity"
-	mongoRepo "github.com/Out-Of-India-Theory/prarthana-automated-script/repository/mongo/prarthana_data"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/service/zoho"
-	"github.com/Out-Of-India-Theory/prarthana-automated-script/util"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
+	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -39,11 +39,11 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 	var err error
 	_, deityToPrarthanaMap, err := s.preparePrarthanaToDeityMap(ctx)
 	if err != nil {
-		log.Fatalf("Error generating TmpId to ID map: %v", err)
+		log.Fatalf("Error generating Prarthana TmpId to Deity ID map: %v", err)
 	}
 	prarthanaIdMap, err := s.prarthanaMongoRepository.GeneratePrarthanaTmpIdToIdMap(ctx)
 	if err != nil {
-		log.Fatalf("Error generating TmpId to ID map: %v", err)
+		log.Fatalf("Error generating Prarthana TmpId to Prarthana ID map: %v", err)
 	}
 	var response entity.ShlokaSheetResponse
 	err = s.zohoService.GetSheetData(ctx, "deities", &response)
@@ -83,10 +83,21 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		deityNameMarathi := record["Title (Marathi)"].(string)
 		deityNameTamil := record["Title (Tamil)"].(string)
 		deityNameTelugu := record["Title (Telugu)"].(string)
+		deityNameGujarati := record["Title (Gujarati)"].(string)
+		deityNameAssamese := record["Title (Assamese)"].(string)
+		deityNamePunjabi := record["Title (Punjabi)"].(string)
+		deityNameMalayalam := record["Title (Malayalam)"].(string)
+		deityNameOdia := record["Title (Odia)"].(string)
+		deityNameBengali := record["Title (Bengali)"].(string)
 
 		deityUuid := record["UUID"].(string)
 		if strings.TrimSpace(deityUuid) == "" {
-			deityUuid = uuid.NewString()
+			generateUuid := uuid.NewString()
+			deityUuid = generateUuid
+			err := s.zohoService.AddUUIDToSheet(ctx, "deities", deityUuid, i+2)
+			if err != nil {
+				return nil, fmt.Errorf("failed to update UUID to sheet for row %d: %w", i+2, err)
+			}
 		}
 		tmpId := fmt.Sprintf("%d", id)
 		if val, found := tmpIdToDeityIdMap[tmpId]; found {
@@ -104,9 +115,53 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		if !util.UrlExists(backgroundImage) {
 			return nil, fmt.Errorf("deity background image does not exist: %s", backgroundImage)
 		}
+		formattedtitle := strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_"))
+		var heroImageAlbum []entity.HeroImageAlbum
+		heroImageCount, ok := record["Hero Image Count"].(float64)
+		if ok && heroImageCount > 0 {
+			for i := 0; i < int(heroImageCount); i++ { // Convert float64 to int directly
+				imageIndex := ""
+				if i > 0 {
+					imageIndex = strconv.Itoa(i)
+				}
+				heroImageAlbum = append(heroImageAlbum, entity.HeroImageAlbum{
+					FullImage:      fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex),
+					ThumbnailImage: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex),
+					ShareImage:     fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/share_image/%s%s.png", formattedtitle, imageIndex),
+				})
+			}
+		}
+
+		var deityOfTheDay string
+		//if dodFlag, ok := record["DOD Flag"].(bool); ok && dodFlag {
+		//	deityOfTheDay = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/dod_image/%s.png", formattedtitle)
+		//}
+		deityOfTheDayStr, ok := record["DOD Flag"]
+		if deityOfTheDayStr == "Yes" {
+			deityOfTheDay = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/dod_image/%s.png", formattedtitle)
+		} else if deityOfTheDayStr == "No" {
+			deityOfTheDay = ""
+		}
 		aliases, ok := record["Also known as"].(string)
 		if !ok {
 			aliases = ""
+		}
+		festivalIdsStr, ok := record["Festival Ids"].(string)
+		festivalIds := []string{}
+		if ok && len(festivalIdsStr) != 0 {
+			festivalIds = util.GetSplittedString(festivalIdsStr)
+		}
+		regionsStr, ok := record["Region"].(string)
+		regions := []string{}
+		if ok && len(regionsStr) != 0 {
+			regions = util.GetSplittedString(regionsStr)
+		}
+		var status bool
+		statusStr, ok := record["Status"].(string)
+		if statusStr == "TRUE" {
+			status = true
+		} else if statusStr == "FALSE" {
+			status = false
 		}
 		descriptionDefault, ok := record["Description (Default)"].(string)
 		if !ok {
@@ -117,6 +172,37 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		descriptionMarathi, ok := record["Description (Marathi)"].(string)
 		descriptionTamil, ok := record["Description (Tamil)"].(string)
 		descriptionTelugu, ok := record["Description (Telugu)"].(string)
+		descriptionGujarati, ok := record["Description (Gujarati)"].(string)
+		aliasesV1Default, ok := record["Aliases_v1 (Default)"].(string)
+		aliasesV1Hindi, ok := record["Aliases_v1 (Hindi)"].(string)
+		aliasesV1Kannada, ok := record["Aliases_v1 (Kannada)"].(string)
+		aliasesV1Marathi, ok := record["Aliases_v1 (Marathi)"].(string)
+		aliasesV1Tamil, ok := record["Aliases_v1 (Tamil)"].(string)
+		aliasesV1Telugu, ok := record["Aliases_v1 (Telugu)"].(string)
+		aliasesV1Gujarati, ok := record["Aliases_v1 (Gujarati)"].(string)
+		aliasesV1 := make(map[string][]string)
+
+		if aliasesV1Default != "" {
+			aliasesV1["default"] = util.GetSplittedString(aliasesV1Default)
+		}
+		if aliasesV1Hindi != "" {
+			aliasesV1["hi"] = util.GetSplittedString(aliasesV1Hindi)
+		}
+		if aliasesV1Kannada != "" {
+			aliasesV1["kn"] = util.GetSplittedString(aliasesV1Kannada)
+		}
+		if aliasesV1Marathi != "" {
+			aliasesV1["mr"] = util.GetSplittedString(aliasesV1Marathi)
+		}
+		if aliasesV1Tamil != "" {
+			aliasesV1["ta"] = util.GetSplittedString(aliasesV1Tamil)
+		}
+		if aliasesV1Telugu != "" {
+			aliasesV1["te"] = util.GetSplittedString(aliasesV1Telugu)
+		}
+		if aliasesV1Gujarati != "" {
+			aliasesV1["gu"] = util.GetSplittedString(aliasesV1Gujarati)
+		}
 		deity := entity.DeityDocument{
 			TmpId: tmpId,
 			Id:    deityUuid,
@@ -127,9 +213,17 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 				"mr":      deityNameMarathi,
 				"ta":      deityNameTamil,
 				"te":      deityNameTelugu,
+				"gu":      deityNameGujarati,
+				"as":      deityNameAssamese,
+				"pa":      deityNamePunjabi,
+				"bn":      deityNameBengali,
+				"od":      deityNameOdia,
+				"ml":      deityNameMalayalam,
 			},
-			Slug:    strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_")),
-			Aliases: util.GetSplittedString(aliases),
+			Region:    regions,
+			Slug:      strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_")),
+			Aliases:   util.GetSplittedString(aliases),
+			AliasesV1: aliasesV1,
 			Description: map[string]string{
 				"default": descriptionDefault,
 				"hi":      descriptionHindi,
@@ -137,11 +231,16 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 				"mr":      descriptionMarathi,
 				"ta":      descriptionTamil,
 				"te":      descriptionTelugu,
+				"gu":      descriptionGujarati,
 			},
 			UIInfo: entity.DeityUIInfo{
 				DefaultImage:    defaultImage,
 				BackgroundImage: backgroundImage,
+				HeroImageAlbum:  heroImageAlbum,
+				DeityOfTheDay:   deityOfTheDay,
 			},
+			FestivalIds: festivalIds,
+			Status:      status,
 		}
 		deityIdMap[tmpId] = deity.Id
 		deities = append(deities, deity)
@@ -168,25 +267,34 @@ func (s *DeityIngestionService) preparePrarthanaToDeityMap(ctx context.Context) 
 	}
 	pdmap := make(map[string]string)
 	dpMap := make(map[string][]string)
-	for _, record := range response.Records {
-		prarthanaIdf, ok := record["Prarthana ID"].(float64)
-		if !ok {
-			return nil, nil, errors.New("prarthana ID is not a float")
-		}
-		deityIdString := fmt.Sprintf("%v", record["Diety ID"])
+	for i, record := range response.Records {
+		var prarthanaIds []string
 
-		//deityIdf, ok := record["Diety ID"].(float64)
+		switch v := record["Prarthana ID"].(type) {
+		case float64:
+			prarthanaIds = []string{strconv.FormatFloat(v, 'f', -1, 64)}
+		case string:
+			if v == "" {
+				return nil, nil, fmt.Errorf("row %d: prarthana ID is empty string", i+2) // +2 to match sheet row (1-indexed + header)
+			}
+			prarthanaIds = util.GetSplittedString(v)
+		default:
+			return nil, nil, fmt.Errorf("row %d: invalid prarthana ID type", i+2)
+		}
+
+		deityIdString := fmt.Sprintf("%v", record["Diety ID"])
 		if len(deityIdString) == 0 {
-			return nil, nil, errors.New("diety ID is not a float")
+			// Skip mapping if deity ID is empty
+			continue
 		}
 		deityIds := util.GetSplittedString(deityIdString)
-		prarthanaId := strconv.FormatFloat(prarthanaIdf, 'f', -1, 64)
-		//deityId := fmt.Sprintf("%f", deityIdf)
-		for _, id := range deityIds {
-			pdmap[prarthanaId] = id
-			dpMap[id] = append(dpMap[id], prarthanaId)
-		}
 
+		for _, prarthanaId := range prarthanaIds {
+			for _, deityId := range deityIds {
+				pdmap[prarthanaId] = deityId
+				dpMap[deityId] = append(dpMap[deityId], prarthanaId)
+			}
+		}
 	}
 	return pdmap, dpMap, nil
 }

@@ -15,6 +15,24 @@ type Configuration struct {
 	MongoConfig      config.MongoConfig
 	ZohoConfig       ZohoConfig
 	AuthClientConfig HttpClientConfig
+	UIConfig         UIConfig
+	ESConfig         ESConfig
+	OpenAIConfig     OpenAIConfig
+}
+
+type OpenAIConfig struct {
+	Key string
+}
+
+type ESConfig struct {
+	Host           string
+	Auth           string
+	DeityIndex     string
+	PrarthanaIndex string
+}
+
+type UIConfig struct {
+	BackendHost string
 }
 
 type ZohoConfig struct {
