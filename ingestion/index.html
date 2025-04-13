@@ -148,13 +148,13 @@
             <label for="end_id">End ID:</label>
             <input type="number" id="end_id" placeholder="Enter end ID for shlok/stotra">
         </div>
-        <button id="btn1" onclick="callApi(`/prarthana_script/v1/shloks`)">1. Ingest Shloks</button>
-        <button id="btn2" onclick="callApi('/prarthana_script/v1/stotras')">2. Ingest Stotras</button>
-        <button id="btn3" onclick="callApi('/prarthana_script/v1/prarthanas/')">3. Ingest Prarthanas</button>
-        <button id="btn4" onclick="callApi('/prarthana_script/v1/deities')">4. Ingest Deities</button>
-        <button id="btn5" onclick="callGetApi('/prarthana_script/v1/deities-search')">5. Update Search Deity Data</button>
-        <button id="btn6" onclick="callGetApi('/prarthana_script/v1/prarthanas-search')">6. Update Search Prarthana Data</button>
-        <button id="btn7" onclick="callApi('/prarthana_script/v1/shlokas-translation')">7. Generate Shloka Translation</button>
+        <button id="btn1" onclick="callApi(`/ingestion/prarthana/v1/shloks`)">1. Ingest Shloks</button>
+        <button id="btn2" onclick="callApi('/ingestion/prarthana/v1/stotras')">2. Ingest Stotras</button>
+        <button id="btn3" onclick="callApi('/ingestion/prarthana/v1/prarthanas/')">3. Ingest Prarthanas</button>
+        <button id="btn4" onclick="callApi('/ingestion/prarthana/v1/deities')">4. Ingest Deities</button>
+        <button id="btn5" onclick="callGetApi('/ingestion/prarthana/v1/deities-search')">5. Update Search Deity Data</button>
+        <button id="btn6" onclick="callGetApi('/ingestion/prarthana/v1/prarthanas-search')">6. Update Search Prarthana Data</button>
+        <button id="btn7" onclick="callApi('/ingestion/prarthana/v1/shlokas-translation')">7. Generate Shloka Translation</button>
 
         <div class="response-container">
             <h2>Response</h2>

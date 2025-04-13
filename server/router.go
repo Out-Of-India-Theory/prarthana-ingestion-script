@@ -13,7 +13,7 @@ import (
 )
 
 func registerRoutes(ctx context.Context, app *app.App, service facade.Service, configuration *configuration.Configuration) {
-	basePath := app.Engine.Group("prarthana_script")
+	basePath := app.Engine.Group("ingestion/prarthana")
 	app.Engine.GET("/health-check", ingestion.HealthCheck)
 	authRepo := zoho.InitZohoService(ctx, configuration, &http.Client{})
 	am := middleware.InitAuthMiddleware(configuration, authRepo)
@@ -27,10 +27,10 @@ func registerRoutes(ctx context.Context, app *app.App, service facade.Service, c
 		prarthanaIngestionV1.POST("/deities", am.ZohoAuthMiddleware(), prarthanaIngestionController.DeityIngestion)
 		prarthanaIngestionV1.GET("/deities-search", prarthanaIngestionController.DeitySearchIngestion)
 		prarthanaIngestionV1.GET("/prarthanas-search", prarthanaIngestionController.PrarthanaSearchIngestion)
-		prarthanaIngestionV1.POST("/shlokas-translation",am.ZohoAuthMiddleware(),prarthanaIngestionController.ShlokTranslationGeneration)
+		prarthanaIngestionV1.POST("/shlokas-translation", am.ZohoAuthMiddleware(), prarthanaIngestionController.ShlokTranslationGeneration)
 	}
 	app.Engine.LoadHTMLGlob("ingestion/*.html")
-	app.Engine.GET("/ingestion/prarthana.html", func(c *gin.Context) {
+	app.Engine.GET("/ingestion/prarthana/prarthana.html", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", configuration.UIConfig)
 	})
 }
