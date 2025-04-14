@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
@@ -13,6 +15,8 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
 	"go.uber.org/zap"
 )
+
+const maxWorkers = 5
 
 type ShlokTranslationService struct {
 	logger                 *zap.Logger
@@ -53,38 +57,66 @@ func (s *ShlokTranslationService) GenerateShlokaTranslation(ctx context.Context,
 		return errors.New("invalid range of Id's")
 	}
 
-	translatedRecords := entity.ShlokaSheetResponse{}
 	languages := []string{"english", "kannada", "hindi", "telugu", "bengali", "marathi", "tamil", "gujarati", "odiya", "malayalam", "assamese", "punjabi"}
+	batchSize := 5
 
-	for i := startId - 1; i < endId && i < len(response.Records); i++ {
-		record := response.Records[i]
-		newRecord := make(map[string]interface{})
-		newRecord["ID"] = record["ID"]
-		newRecord["Name (Optional)"] = record["Name (Optional)"]
-		newRecord["text_sanskrit"] = record["text_sanskrit"]
-		textSanskrit, ok := record["text_sanskrit"].(string)
-		if !ok || strings.TrimSpace(textSanskrit) == "" {
-			return fmt.Errorf("missing or invalid 'text_sanskrit' at row %d", i+1)
+	for batchStart := startId; batchStart <= endId; batchStart += batchSize {
+		batchEnd := batchStart + batchSize - 1
+		if batchEnd > endId {
+			batchEnd = endId
 		}
-		for _, lang := range languages {
-			textKey := "text_" + lang
-			translationKey := "translation_" + lang
-			textVal := s.GetTranslation(textSanskrit, lang, false)
-			translationVal := s.GetTranslation(textSanskrit, lang, true)
-			if strings.TrimSpace(textVal) == "" {
-				textVal = "[MISSING]"
+
+		for i := batchStart - 1; i < batchEnd && i < len(response.Records); i++ {
+			record := response.Records[i]
+			textSanskrit, ok := record["text_sanskrit"].(string)
+			if !ok || strings.TrimSpace(textSanskrit) == "" {
+				log.Printf("invalid text_sanskrit at row %d", i+1)
+				continue
 			}
-			if strings.TrimSpace(translationVal) == "" {
-				translationVal = "[MISSING]"
+			newRecord := []interface{}{}
+			newRecord = append(newRecord, record["ID"], record["Name (Optional)"], textSanskrit)
+			var wg sync.WaitGroup
+			mu := sync.Mutex{}
+			texts := make(map[string]string)
+			for _, lang := range languages {
+				wg.Add(2)
+				go func(lang string) {
+					defer wg.Done()
+					text := s.GetTranslation(textSanskrit, lang, false)
+					if strings.TrimSpace(text) == "" {
+						text = "[MISSING]"
+					}
+					mu.Lock()
+					texts["text_"+lang] = text
+					mu.Unlock()
+				}(lang)
+
+				go func(lang string) {
+					defer wg.Done()
+					trans := s.GetTranslation(textSanskrit, lang, true)
+					if strings.TrimSpace(trans) == "" {
+						trans = "[MISSING]"
+					}
+					mu.Lock()
+					texts["translation_"+lang] = trans
+					mu.Unlock()
+				}(lang)
 			}
-			newRecord[textKey] = textVal
-			newRecord[translationKey] = translationVal
+			wg.Wait()
+			for _, lang := range languages {
+				newRecord = append(newRecord, texts["text_"+lang], texts["translation_"+lang])
+			}
+			columnIndexes := make([]int, len(newRecord))
+			for j := range newRecord {
+				columnIndexes[j] = j + 1
+			}
+			err := s.zohoService.SetSheetData(ctx, "shloka", i+2, columnIndexes, newRecord)
+			if err != nil {
+				return fmt.Errorf("failed to write row %d: %w", i+1, err)
+			}
+			//log.Printf("✅ Successfully wrote row ID %d", i+1)
+			time.Sleep(500 * time.Millisecond)
 		}
-		translatedRecords.Records = append(translatedRecords.Records, newRecord)
-	}
-	err = s.zohoService.SetSheetData(ctx, "shloka", translatedRecords, startId)
-	if err != nil {
-		return fmt.Errorf("failed to set sheet data: %w", err)
 	}
 	return nil
 }
