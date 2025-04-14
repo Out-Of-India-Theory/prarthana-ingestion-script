@@ -1,15 +1,15 @@
 package ingestion
 
 import (
+	"context"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 )
 
 func (con *Controller) ShlokTranslationGeneration(c *gin.Context) {
-	ctx := c.Request.Context()
-	ctx = util.SetZohoAccessTokenInContext(ctx, c.Request.Header.Get("zoho-access-token"))
 	var request entity.IngestionRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -18,17 +18,20 @@ func (con *Controller) ShlokTranslationGeneration(c *gin.Context) {
 		})
 		return
 	}
-	err := con.service.ShlokTranslationService().GenerateShlokaTranslation(ctx, request.StartID, request.EndID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  http.StatusInternalServerError,
-			"message": "Error processing request: " + err.Error(),
-		})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"status":  http.StatusOK,
-		"message": "Successful",
-		"data":    nil,
+	accessToken := c.Request.Header.Get("zoho-access-token")
+	go func(startID, endID int, token string) {
+		ctx := context.Background()
+		ctx = util.SetZohoAccessTokenInContext(ctx, token)
+		err := con.service.ShlokTranslationService().GenerateShlokaTranslation(ctx, startID, endID)
+		if err != nil {
+			log.Printf("❌ Background translation failed: %v", err)
+		} else {
+			log.Printf("✅ Background translation completed for ID range: %d - %d", startID, endID)
+		}
+	}(request.StartID, request.EndID, accessToken)
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"status":  http.StatusAccepted,
+		"message": "Translation started in background",
 	})
 }
