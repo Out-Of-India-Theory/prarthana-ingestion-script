@@ -333,7 +333,7 @@ func getDurationFromFile(filename string) (string, int, error) {
 	}
 
 	minutes := int(math.Max(1, math.Round((float64(totalSeconds) / float64(60)))))
-	durationStr := fmt.Sprintf("%dm", minutes)
+	durationStr := fmt.Sprintf("%dm", minutes/2)
 
 	return durationStr, totalSeconds, nil
 }
