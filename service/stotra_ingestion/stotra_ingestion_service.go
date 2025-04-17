@@ -332,10 +332,10 @@ func getDurationFromFile(filename string) (string, int, error) {
 		return "", 0, fmt.Errorf("unsupported file type: %s", ext)
 	}
 
-	minutes := int(math.Max(1, math.Round((float64(totalSeconds/2) / float64(60)))))
+	minutes := int(math.Max(1, math.Round((float64(totalSeconds) / float64(60)))))
 	durationStr := fmt.Sprintf("%dm", minutes)
 
-	return durationStr, totalSeconds / 2, nil
+	return durationStr, totalSeconds, nil
 }
 
 func getDurationFromFileInMilliseconds(filename string) (string, int, error) {
