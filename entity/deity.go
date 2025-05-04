@@ -22,10 +22,11 @@ type DeityDocument struct {
 }
 
 type DeityUIInfo struct {
-	DefaultImage    string           `json:"default_image" bson:"default_image"`
-	BackgroundImage string           `json:"background_image" bson:"background_image"`
-	DeityOfTheDay   string           `json:"deity_of_the_day" bson:"deity_of_the_day,omitempty"`
-	HeroImageAlbum  []HeroImageAlbum `json:"hero_image_album" bson:"hero_image_album"`
+	DefaultImage            string           `json:"default_image" bson:"default_image"`
+	BackgroundImage         string           `json:"background_image" bson:"background_image"`
+	DeityOfTheDay           string           `json:"deity_of_the_day" bson:"deity_of_the_day,omitempty"`
+	CompressedDeityOfTheDay string           `json:"compressed_deity_of_the_day" bson:"compressed_deity_of_the_day"`
+	HeroImageAlbum          []HeroImageAlbum `json:"hero_image_album" bson:"hero_image_album"`
 }
 
 type HeroImageAlbum struct {

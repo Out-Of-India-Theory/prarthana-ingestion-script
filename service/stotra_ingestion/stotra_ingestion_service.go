@@ -263,8 +263,8 @@ func (s *StotraIngestionService) StotraIngestion(ctx context.Context, startID, e
 					},
 					ShlokIds:               util.GetSplittedString(shlokIds),
 					Duration:               durationStr,
-					DurationInSeconds:      durationInSeconds / 2,
-					DurationInMilliseconds: durationInMilliseconds / 2,
+					DurationInSeconds:      durationInSeconds,
+					DurationInMilliseconds: durationInMilliseconds,
 					StotraUrl:              stotraUrl,
 				}
 
@@ -333,7 +333,7 @@ func getDurationFromFile(filename string) (string, int, error) {
 	}
 
 	minutes := int(math.Max(1, math.Round((float64(totalSeconds) / float64(60)))))
-	durationStr := fmt.Sprintf("%dm", minutes/2)
+	durationStr := fmt.Sprintf("%dm", minutes)
 
 	return durationStr, totalSeconds, nil
 }

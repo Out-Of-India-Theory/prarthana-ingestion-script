@@ -118,11 +118,12 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		formattedtitle := strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_"))
 		var heroImageAlbum []entity.HeroImageAlbum
 		heroImageCount, ok := record["Hero Image Count"].(float64)
+		startCount, ok := record["Start Count"].(float64)
 		if ok && heroImageCount > 0 {
 			for i := 0; i < int(heroImageCount); i++ { // Convert float64 to int directly
 				imageIndex := ""
-				if i > 0 {
-					imageIndex = strconv.Itoa(i)
+				if i >= 0 {
+					imageIndex = strconv.Itoa(int(startCount) + i)
 				}
 				heroImageAlbum = append(heroImageAlbum, entity.HeroImageAlbum{
 					FullImage:      fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex),
@@ -136,9 +137,11 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		//if dodFlag, ok := record["DOD Flag"].(bool); ok && dodFlag {
 		//	deityOfTheDay = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/dod_image/%s.png", formattedtitle)
 		//}
+		var compressedWidgetImage string
 		deityOfTheDayStr, ok := record["DOD Flag"]
 		if deityOfTheDayStr == "Yes" {
-			deityOfTheDay = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/dod_image/%s.png", formattedtitle)
+			deityOfTheDay = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/dod_image/%s2.png", formattedtitle)
+			compressedWidgetImage = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/compressed_dod_image/%s2.png", formattedtitle)
 		} else if deityOfTheDayStr == "No" {
 			deityOfTheDay = ""
 		}
@@ -234,10 +237,11 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 				"gu":      descriptionGujarati,
 			},
 			UIInfo: entity.DeityUIInfo{
-				DefaultImage:    defaultImage,
-				BackgroundImage: backgroundImage,
-				HeroImageAlbum:  heroImageAlbum,
-				DeityOfTheDay:   deityOfTheDay,
+				DefaultImage:            defaultImage,
+				BackgroundImage:         backgroundImage,
+				HeroImageAlbum:          heroImageAlbum,
+				DeityOfTheDay:           deityOfTheDay,
+				CompressedDeityOfTheDay: compressedWidgetImage,
 			},
 			FestivalIds: festivalIds,
 			Status:      status,
