@@ -414,7 +414,7 @@ func (r *PrarthanaDataMongoRepository) PullDeityDocs(ctx context.Context) []enti
 	return deities
 }
 
-func (r *PrarthanaDataMongoRepository) PullPrarthanaDocs(ctx context.Context) []entity.Prarthana {
+func (r *PrarthanaDataMongoRepository) PullPrarthanaDocs(ctx context.Context) []entity.PrarthanaSearchDoc {
 	pipeline := mongo.Pipeline{
 		{{"$lookup", bson.D{
 			{"from", "deities"},
@@ -442,9 +442,9 @@ func (r *PrarthanaDataMongoRepository) PullPrarthanaDocs(ctx context.Context) []
 	}
 	defer cursor.Close(context.Background())
 
-	var prarthanas []entity.Prarthana
+	var prarthanas []entity.PrarthanaSearchDoc
 	for cursor.Next(context.Background()) {
-		var result entity.Prarthana
+		var result entity.PrarthanaSearchDoc
 		if err := cursor.Decode(&result); err != nil {
 			log.Fatal(err)
 		}

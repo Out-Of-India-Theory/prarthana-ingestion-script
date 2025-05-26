@@ -106,14 +106,31 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 			return nil, errors.New("Missing prarthana album art")
 		}
 		audioName := strings.ToLower(util.SanitizeString(nameDefault))
-
-		audioURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.wav", audioName)
-		audioURLMp3 := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.mp3", audioName)
-		if !util.UrlExists(audioURL) {
-			if !util.UrlExists(audioURLMp3) {
-				return nil, fmt.Errorf("audio URL does not exist: %s", audioURL)
+		studioRecorded := false
+		studioRecordedStr, ok := record["Studio Recorded"].(string)
+		if ok && studioRecordedStr == "TRUE" {
+			studioRecorded = true
+		}
+		audioAvailable := false
+		audioAvailableStr, ok := record["Audio Available"].(string)
+		if ok && strings.ToLower(audioAvailableStr) == "true" {
+			audioAvailable = true
+		}
+		var audioInfo entity.AudioInfo
+		if audioAvailable {
+			audioURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.wav", audioName)
+			audioURLMp3 := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.mp3", audioName)
+			if !util.UrlExists(audioURL) {
+				if !util.UrlExists(audioURLMp3) {
+					return nil, fmt.Errorf("audio URL does not exist: %s", audioURL)
+				}
+				audioURL = audioURLMp3
 			}
-			audioURL = audioURLMp3
+			audioInfo = entity.AudioInfo{
+				AudioUrl:         audioURL,
+				IsAudioAvailable: true,
+				IsStudioRecorded: studioRecorded,
+			}
 		}
 
 		albumArtURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt)
@@ -121,11 +138,6 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 			return nil, fmt.Errorf("album art URL does not exist: %s", albumArtURL)
 		}
 
-		studioRecorded := false
-		studioRecordedStr, ok := record["Studio Recorded"].(string)
-		if ok && studioRecordedStr == "TRUE" {
-			studioRecorded = true
-		}
 		festivalIdsStr, ok := record["Festival Ids"].(string)
 		festivalIds := []string{}
 		if ok && len(festivalIdsStr) != 0 {
@@ -161,11 +173,9 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 				"te":      nameTelugu,
 				"gu":      nameGujarati,
 			},
-			FestivalIds: festivalIds,
-			Days:        util.GetDaysFromTitle(nameDefault),
-			AudioInfo: entity.AudioInfo{AudioUrl: audioURL,
-				IsAudioAvailable: true,
-				IsStudioRecorded: studioRecorded},
+			FestivalIds:   festivalIds,
+			Days:          util.GetDaysFromTitle(nameDefault),
+			AudioInfo:     audioInfo,
 			Variants:      []entity.Variant{variantMap[variantIds]},
 			Description:   map[string]string{"default": shortDescriptionDefault, "hi": shortDescriptionHindi, "kn": shortDescriptionKannada, "mr": shortDescriptionMarathi, "ta": shortDescriptionTamil, "te": shortDescriptionTelugu, "gu": shortDescriptionGujarati},
 			Importance:    map[string]string{},
