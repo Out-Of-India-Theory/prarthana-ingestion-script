@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const DuratiomInMin = "%s.0f min"
+const DuratiomInMin = "%.0f min"
 
 type SearchIngestionService struct {
 	logger                   *zap.Logger
