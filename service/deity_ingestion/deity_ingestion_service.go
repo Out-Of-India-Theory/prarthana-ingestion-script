@@ -112,9 +112,9 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 			return nil, fmt.Errorf("deity image does not exist: %s", defaultImage)
 		}
 		backgroundImage := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/bg-image/%s.png", deityImageName)
-		if !util.UrlExists(backgroundImage) {
-			return nil, fmt.Errorf("deity background image does not exist: %s", backgroundImage)
-		}
+		//if !util.UrlExists(backgroundImage) {
+		//	return nil, fmt.Errorf("deity background image does not exist: %s", backgroundImage)
+		//}
 		formattedtitle := strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_"))
 		var heroImageAlbum []entity.HeroImageAlbum
 		heroImageCount, ok := record["Hero Image Count"].(float64)
