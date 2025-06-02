@@ -36,13 +36,16 @@ func (r *OpenAIClientRepository) TranslateText(text string, lang string, isTrans
 	var taskPrompt string
 	if isTranslation {
 		taskPrompt = fmt.Sprintf(
-			"Translate this Sanskrit Shloka to everyday formal vernacular language in %s. Provide only the translated text without any explanations. Translated text can only contain %s text and nothing else.",
+			"Translate this Sanskrit Shloka to everyday formal vernacular language in %s. Provide only the translated text without any explanations. Only return the translated text in plain %s script. Do not include any symbols, special characters (like ॐ, ।, -, (), etc.), or explanations. The output should only contain standard %s words, without any non-language elements.",
 			lang, lang,
 		)
 	} else {
 		taskPrompt = fmt.Sprintf(
-			"Transliterate this Sanskrit Shloka to %s. Provide only the transliterated text without any explanations. Transliterated text can only contain %s text and nothing else.",
-			lang, lang,
+			"Transliterate this Sanskrit Shloka to %s script. "+
+				"Only return the transliterated text using standard %s characters. "+
+				"Do not include any special characters, punctuation, symbols (like ॐ, ।, -, (), etc.), or explanations. "+
+				"The output should only consist of plain %s words.",
+			lang, lang, lang,
 		)
 	}
 
