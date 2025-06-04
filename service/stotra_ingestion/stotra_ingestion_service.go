@@ -198,54 +198,69 @@ func (s *StotraIngestionService) StotraIngestion(ctx context.Context, startID, e
 				nameTelugu, ok := record["Name (Optional) (Telugu)"].(string)
 				nameGujarati, ok := record["Name (Optional) (Gujarati)"].(string)
 
-				baseFilename := strings.ToLower(util.SanitizeString(nameDefault))
-				//strings.ToLower(strings.ReplaceAll(strings.TrimSuffix(name, "|"), " ", "_"))
-				isWav := true
-				stotraUrl := "https://d161fa2zahtt3z.cloudfront.net/audio/" + baseFilename + ".wav"
-				stotraUrlmp3 := "https://d161fa2zahtt3z.cloudfront.net/audio/" + baseFilename + ".mp3"
-				if !util.UrlExists(stotraUrl) {
-					if !util.UrlExists(stotraUrlmp3) {
-						errChan <- fmt.Errorf("audio URL does not exist: %s", stotraUrl)
+				audioAvailableRaw := fmt.Sprintf("%v", record["Audio Available"])
+				audioAvailable := strings.ToLower(audioAvailableRaw) == "true"
+
+				var stotraUrl string
+				var durationStr string
+				var durationInSeconds int
+				var durationInMilliseconds int
+
+				if audioAvailable {
+					baseFilename := strings.ToLower(util.SanitizeString(nameDefault))
+					isWav := true
+					stotraUrl = "https://d161fa2zahtt3z.cloudfront.net/audio/" + baseFilename + ".wav"
+					stotraUrlmp3 := "https://d161fa2zahtt3z.cloudfront.net/audio/" + baseFilename + ".mp3"
+
+					if !util.UrlExists(stotraUrl) {
+						if !util.UrlExists(stotraUrlmp3) {
+							errChan <- fmt.Errorf("audio URL does not exist: %s", stotraUrl)
+							return
+						}
+						isWav = false
+						stotraUrl = stotraUrlmp3
+					}
+
+					resp, err := http.Get(stotraUrl)
+					if err != nil || resp.StatusCode != http.StatusOK {
+						log.Printf("Error accessing StotraUrl: %s, Error: %v\n", stotraUrl, err)
 						return
 					}
-					isWav = false
-					stotraUrl = stotraUrlmp3
-				}
+					defer resp.Body.Close()
 
-				resp, err := http.Get(stotraUrl)
-				if err != nil || resp.StatusCode != http.StatusOK {
-					log.Printf("Error accessing StotraUrl: %s, Error: %v\n", stotraUrl, err)
-					return
-				}
-				defer resp.Body.Close()
+					pattern := "*.wav"
+					if !isWav {
+						pattern = "*.mp3"
+					}
 
-				pattern := "*.wav"
-				if !isWav {
-					pattern = "*.mp3"
-				}
+					tempFile, err := os.CreateTemp("", pattern)
+					if err != nil {
+						log.Println("Error creating temp file:", err)
+						return
+					}
+					defer os.Remove(tempFile.Name())
+					_, err = io.Copy(tempFile, resp.Body)
+					if err != nil {
+						log.Println("Error saving audio file:", err)
+						return
+					}
 
-				tempFile, err := os.CreateTemp("", pattern)
-				if err != nil {
-					log.Println("Error creating temp file:", err)
-					return
-				}
-				defer os.Remove(tempFile.Name())
-				_, err = io.Copy(tempFile, resp.Body)
-				if err != nil {
-					log.Println("Error saving audio file:", err)
-					return
-				}
+					durationStr, durationInSeconds, err = getDurationFromFile(tempFile.Name())
+					if err != nil {
+						log.Println("Error getting duration:", err)
+						return
+					}
 
-				durationStr, durationInSeconds, err := getDurationFromFile(tempFile.Name())
-				if err != nil {
-					log.Println("Error getting duration:", err)
-					return
-				}
-
-				_, durationInMilliseconds, err := getDurationFromFileInMilliseconds(tempFile.Name())
-				if err != nil {
-					log.Println("Error getting duration in milliseconds:", err)
-					return
+					_, durationInMilliseconds, err = getDurationFromFileInMilliseconds(tempFile.Name())
+					if err != nil {
+						log.Println("Error getting duration in milliseconds:", err)
+						return
+					}
+				} else {
+					stotraUrl = ""
+					durationStr = "1 min"
+					durationInSeconds = 60
+					durationInMilliseconds = 60000
 				}
 
 				shlokIds := fmt.Sprintf("%v", record["Shloka ID (Comma separated - Ordered)"])
