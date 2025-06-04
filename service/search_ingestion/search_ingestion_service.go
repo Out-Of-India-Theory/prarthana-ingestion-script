@@ -11,7 +11,8 @@ import (
 	"time"
 )
 
-const DuratiomInMin = "%.0f min"
+const DurationInMin = "%.0f min"
+const DurationInMins = "%.0f min"
 
 type SearchIngestionService struct {
 	logger                   *zap.Logger
@@ -76,7 +77,7 @@ func (s *SearchIngestionService) InsertPrarthanaSearchData(ctx context.Context) 
 			output := entity.PrarthanaSearchData{
 				ID:       doc.ID,
 				Title:    doc.Title[language],
-				Duration: fmt.Sprintf(DuratiomInMin, pDuration.Minutes()),
+				Duration: fmt.Sprintf(DurationInMin, pDuration.Minutes()),
 			}
 
 			for _, deityDoc := range doc.Deity {

@@ -160,7 +160,17 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		shortDescriptionTelugu, ok := record["Short Description (Telugu)"].(string)
 		shortDescriptionGujarati, ok := record["Short Description (Gujarati)"].(string)
 
-		variantIds := fmt.Sprintf("%v", record["Prarthana Variant ID"])
+		variantIdsStr := fmt.Sprintf("%v", record["Prarthana Variant ID"])
+		variantIds := util.GetSplittedString(variantIdsStr)
+		variants := make([]entity.Variant, 0)
+
+		for _, variantId := range variantIds {
+			if variant, exists := variantMap[variantId]; exists {
+				variants = append(variants, variant)
+			} else {
+				return nil, fmt.Errorf("variant ID %s not found in variantMap", variantId)
+			}
+		}
 		prarthana := entity.Prarthana{
 			TmpId: tmpId,
 			Id:    extId,
@@ -176,7 +186,7 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 			FestivalIds:   festivalIds,
 			Days:          util.GetDaysFromTitle(nameDefault),
 			AudioInfo:     audioInfo,
-			Variants:      []entity.Variant{variantMap[variantIds]},
+			Variants:      variants,
 			Description:   map[string]string{"default": shortDescriptionDefault, "hi": shortDescriptionHindi, "kn": shortDescriptionKannada, "mr": shortDescriptionMarathi, "ta": shortDescriptionTamil, "te": shortDescriptionTelugu, "gu": shortDescriptionGujarati},
 			Importance:    map[string]string{},
 			Instruction:   map[string]string{},
@@ -307,10 +317,39 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 		}
 		minutes := int(math.Max(1, math.Round((float64(duration) / float64(60)))))
 		durationStr := fmt.Sprintf("%dm", minutes)
+		nameDefault, ok := record["Variant Name"].(string)
+		audioName := strings.ToLower(util.SanitizeString(nameDefault))
+		studioRecorded := false
+		studioRecordedStr, ok := record["Studio Recorded"].(string)
+		if ok && studioRecordedStr == "TRUE" {
+			studioRecorded = true
+		}
+		audioAvailable := false
+		audioAvailableStr, ok := record["Audio Available"].(string)
+		if ok && strings.ToLower(audioAvailableStr) == "true" {
+			audioAvailable = true
+		}
+		var audioInfo entity.AudioInfo
+		if audioAvailable {
+			audioURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.wav", audioName)
+			audioURLMp3 := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.mp3", audioName)
+			if !util.UrlExists(audioURL) {
+				if !util.UrlExists(audioURLMp3) {
+					return nil, fmt.Errorf("audio URL does not exist: %s", audioURL)
+				}
+				audioURL = audioURLMp3
+			}
+			audioInfo = entity.AudioInfo{
+				AudioUrl:         audioURL,
+				IsAudioAvailable: true,
+				IsStudioRecorded: studioRecorded,
+			}
+		}
 		variant := entity.Variant{
 			Duration:  durationStr,
 			Chapters:  chapters,
 			IsDefault: true,
+			AudioInfo: audioInfo,
 		}
 		id, ok := record["ID"].(float64)
 		if !ok {
