@@ -45,6 +45,15 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 	if err != nil {
 		log.Fatalf("Error generating Prarthana TmpId to Prarthana ID map: %v", err)
 	}
+	existingDeitiesMap := make(map[string]entity.DeityDocument)
+	existingDeities, err := s.prarthanaMongoRepository.GetAllDeities(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch existing deities: %w", err)
+	}
+	for _, deity := range existingDeities {
+		existingDeitiesMap[deity.TmpId] = deity
+	}
+
 	var response entity.ShlokaSheetResponse
 	err = s.zohoService.GetSheetData(ctx, "deities", &response)
 	if err != nil {
@@ -209,20 +218,25 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		deity := entity.DeityDocument{
 			TmpId: tmpId,
 			Id:    deityUuid,
-			Title: map[string]string{
-				"default": deityNameDefault,
-				"hi":      deityNameHindi,
-				"kn":      deityNameKannada,
-				"mr":      deityNameMarathi,
-				"ta":      deityNameTamil,
-				"te":      deityNameTelugu,
-				"gu":      deityNameGujarati,
-				"as":      deityNameAssamese,
-				"pa":      deityNamePunjabi,
-				"bn":      deityNameBengali,
-				"od":      deityNameOdia,
-				"ml":      deityNameMalayalam,
-			},
+			Title: func() map[string]string {
+				if existing, found := existingDeitiesMap[tmpId]; found {
+					return existing.Title
+				}
+				return map[string]string{
+					"default": deityNameDefault,
+					"hi":      deityNameHindi,
+					"kn":      deityNameKannada,
+					"mr":      deityNameMarathi,
+					"ta":      deityNameTamil,
+					"te":      deityNameTelugu,
+					"gu":      deityNameGujarati,
+					"as":      deityNameAssamese,
+					"pa":      deityNamePunjabi,
+					"bn":      deityNameBengali,
+					"od":      deityNameOdia,
+					"ml":      deityNameMalayalam,
+				}
+			}(),
 			Region:    regions,
 			Slug:      strings.ToLower(strings.ReplaceAll(deityNameDefault, " ", "_")),
 			Aliases:   util.GetSplittedString(aliases),
@@ -236,13 +250,18 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 				"te":      descriptionTelugu,
 				"gu":      descriptionGujarati,
 			},
-			UIInfo: entity.DeityUIInfo{
-				DefaultImage:            defaultImage,
-				BackgroundImage:         backgroundImage,
-				HeroImageAlbum:          heroImageAlbum,
-				DeityOfTheDay:           deityOfTheDay,
-				CompressedDeityOfTheDay: compressedWidgetImage,
-			},
+			UIInfo: func() entity.DeityUIInfo {
+				if existing, found := existingDeitiesMap[tmpId]; found {
+					return existing.UIInfo
+				}
+				return entity.DeityUIInfo{
+					DefaultImage:            defaultImage,
+					BackgroundImage:         backgroundImage,
+					HeroImageAlbum:          heroImageAlbum,
+					DeityOfTheDay:           deityOfTheDay,
+					CompressedDeityOfTheDay: compressedWidgetImage,
+				}
+			}(),
 			FestivalIds: festivalIds,
 			Status:      status,
 		}

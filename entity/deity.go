@@ -27,6 +27,7 @@ type DeityUIInfo struct {
 	DeityOfTheDay           string           `json:"deity_of_the_day" bson:"deity_of_the_day,omitempty"`
 	CompressedDeityOfTheDay string           `json:"compressed_deity_of_the_day" bson:"compressed_deity_of_the_day"`
 	HeroImageAlbum          []HeroImageAlbum `json:"hero_image_album" bson:"hero_image_album"`
+	StoryThumbnailImage     string           `json:"story_thumbnail_image" bson:"story_thumbnail_image"`
 }
 
 type HeroImageAlbum struct {
