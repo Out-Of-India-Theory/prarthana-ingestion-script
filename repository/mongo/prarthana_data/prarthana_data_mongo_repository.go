@@ -21,6 +21,7 @@ const (
 	deity_collection     = "deities"
 	shlok_collection     = "shloks"
 	stotra_collection    = "stotras"
+	pooja_collection     = "pooja_catalogue"
 )
 
 type PrarthanaDataMongoRepository struct {
@@ -29,6 +30,7 @@ type PrarthanaDataMongoRepository struct {
 	deityCollection     *mongo.Collection
 	shlokCollection     *mongo.Collection
 	stotraCollection    *mongo.Collection
+	poojaCollection     *mongo.Collection
 }
 
 func InitPrarthanaDataMongoRepository(ctx context.Context, config configuration.Configuration) *PrarthanaDataMongoRepository {
@@ -39,6 +41,7 @@ func InitPrarthanaDataMongoRepository(ctx context.Context, config configuration.
 		deityCollection:     mongoClient.Database(config.MongoConfig.Database).Collection(deity_collection),
 		shlokCollection:     mongoClient.Database(config.MongoConfig.Database).Collection(shlok_collection),
 		stotraCollection:    mongoClient.Database(config.MongoConfig.Database).Collection(stotra_collection),
+		poojaCollection:     mongoClient.Database(config.MongoConfig.Database).Collection(pooja_collection),
 	}
 }
 
@@ -455,4 +458,43 @@ func (r *PrarthanaDataMongoRepository) PullPrarthanaDocs(ctx context.Context) []
 		log.Fatal(err)
 	}
 	return prarthanas
+}
+
+func (r *PrarthanaDataMongoRepository) ListPooja(ctx context.Context) []entity.PoojaMongoDocument {
+	pipeline := mongo.Pipeline{
+		{{"$match", bson.D{
+			{"status", true},
+		}}},
+		{{"$lookup", bson.D{
+			{"from", "pooja_variants"},
+			{"localField", "pooja_ids"},
+			{"foreignField", "_id"},
+			{"as", "variants"},
+		}}},
+		{{"$lookup", bson.D{
+			{"from", "deities"},
+			{"localField", "deity_ids"},
+			{"foreignField", "_id"},
+			{"as", "deities"},
+		}}},
+	}
+
+	cursor, err := r.poojaCollection.Aggregate(ctx, pipeline)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cursor.Close(context.Background())
+
+	var poojas []entity.PoojaMongoDocument
+	for cursor.Next(context.Background()) {
+		var result entity.PoojaMongoDocument
+		if err := cursor.Decode(&result); err != nil {
+			log.Fatal(err)
+		}
+		poojas = append(poojas, result)
+	}
+	if err := cursor.Err(); err != nil {
+		log.Fatal(err)
+	}
+	return poojas
 }

@@ -76,3 +76,22 @@ type PrarthanaSearchDoc struct {
 	UIDetails  PrarthanaUIInfo   `bson:"ui_info"`
 	AudioInfo  AudioInfo         `json:"audio_info" bson:"audio_info"`
 }
+
+type PoojaMongoDocument struct {
+	ID           string            `bson:"_id"`
+	Title        map[string]string `bson:"title"`
+	Key          string            `bson:"key"`
+	Deities      []DeityDocument   `bson:"deities"`
+	Variants     []Variant         `bson:"variants"`
+	ThumbnailUrl string            `bson:"thumbnail_image_url"`
+	Price        string            `bson:"price"`
+}
+
+type PoojaESDocument struct {
+	ID           string   `json:"id"`
+	Title        string   `json:"title"`
+	Key          string   `json:"key"`
+	DeityNames   []string `json:"deity_names"`
+	Price        int      `json:"price"`
+	ThumbnailUrl string   `json:"thumbnail_url"`
+}
