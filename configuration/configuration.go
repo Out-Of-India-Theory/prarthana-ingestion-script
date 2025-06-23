@@ -2,22 +2,24 @@ package configuration
 
 import (
 	"fmt"
-	"github.com/Out-Of-India-Theory/oit-go-commons/config"
-	"github.com/spf13/viper"
 	"strings"
 	"time"
+
+	"github.com/Out-Of-India-Theory/oit-go-commons/config"
+	"github.com/spf13/viper"
 )
 
 var configuration *Configuration
 
 type Configuration struct {
-	ServerConfig     config.AppConfig
-	MongoConfig      config.MongoConfig
-	ZohoConfig       ZohoConfig
-	AuthClientConfig HttpClientConfig
-	UIConfig         UIConfig
-	ESConfig         ESConfig
-	OpenAIConfig     OpenAIConfig
+	ServerConfig           config.AppConfig
+	MongoConfig            config.MongoConfig
+	ZohoConfig             ZohoConfig
+	AuthClientConfig       HttpClientConfig
+	UIConfig               UIConfig
+	ESConfig               ESConfig
+	OpenAIConfig           OpenAIConfig
+	AIPlatformClientConfig HttpClientConfig
 }
 
 type OpenAIConfig struct {
