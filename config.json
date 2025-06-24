@@ -34,5 +34,8 @@
   },
   "OpenAIConfig": {
     "Key": "xxxx"
+  },
+  "AIPlatformClientConfig":{
+    "Address":"xxxx"
   }
 }

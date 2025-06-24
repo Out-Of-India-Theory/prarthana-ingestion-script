@@ -81,10 +81,9 @@ func (s *ShlokTranslationService) GenerateShlokaTranslation(ctx context.Context,
 			texts := make(map[string]string)
 
 			for _, lang := range languages {
-				
 				wg.Add(2)
-
-				go func() {
+				langCopy := lang
+				go func(lang string) {
 					defer wg.Done()
 					textInput := []string{textSanskrit}
 					raw := s.GetTranslation(ctx, textInput, lang, true)
@@ -95,9 +94,9 @@ func (s *ShlokTranslationService) GenerateShlokaTranslation(ctx context.Context,
 					mu.Lock()
 					texts["text_"+lang] = translated
 					mu.Unlock()
-				}()
-
-				go func() {
+				}(langCopy)
+			
+				go func(lang string) {
 					defer wg.Done()
 					textInput := []string{textSanskrit}
 					trans := s.GetTranslation(ctx, textInput, lang, false)
@@ -108,9 +107,9 @@ func (s *ShlokTranslationService) GenerateShlokaTranslation(ctx context.Context,
 					mu.Lock()
 					texts["translation_"+lang] = translated
 					mu.Unlock()
-				}()
+				}(langCopy)
 			}
-
+			
 			wg.Wait()
 
 			for _, lang := range languages {

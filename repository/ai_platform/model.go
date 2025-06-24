@@ -6,7 +6,7 @@ type TranslateText struct {
 }
 
 type TranslateTextResponse struct {
-	TranslatedTexts []TranslateText `json:"translated_texts"`
+	Translations []TranslateText `json:"translations"`
 }
 
 type BatchTranslateRequest struct {

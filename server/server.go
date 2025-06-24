@@ -26,7 +26,7 @@ func InitServer(ctx context.Context, app *app.App, configuration *configuration.
 	//repo initializations
 	prarthanaDataMongoRepository := prarthana_data.InitPrarthanaDataMongoRepository(ctx, *configuration)
 	prarthanaESRepository := prarthana.InitPrarthanaESRepository(ctx, configuration.ESConfig)
-	platformaiClientRepository := ai_platform.InitPlatformAIClientRepository(ctx, configuration.AIPlatformClientConfig)
+	platformaiClientRepository := ai_platform.InitPlatformAIClientRepository(ctx, *configuration)
 
 	zohoService := zoho.InitZohoService(ctx, configuration, &http.Client{})
 	//service initializations

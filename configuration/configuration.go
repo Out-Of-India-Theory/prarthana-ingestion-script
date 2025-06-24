@@ -19,7 +19,11 @@ type Configuration struct {
 	UIConfig               UIConfig
 	ESConfig               ESConfig
 	OpenAIConfig           OpenAIConfig
-	AIPlatformClientConfig HttpClientConfig
+	AIPlatformClientConfig AIPlatformConfig
+}
+
+type AIPlatformConfig struct {
+	Address string
 }
 
 type OpenAIConfig struct {
@@ -77,6 +81,7 @@ func init() {
 		fmt.Printf("error while deserializing config, %v\n", err)
 		panic(err)
 	}
+	_ = v.BindEnv("AIPlatformClientConfig.Address")
 }
 
 func GetConfig() *Configuration {
