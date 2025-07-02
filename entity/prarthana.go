@@ -63,16 +63,29 @@ type PrarthanaSearchData struct {
 	Shloks           []string `json:"shloks"`
 	ImageURL         string   `json:"image_url"`
 	IsAudioAvailable bool     `json:"is_audio_available"`
+	CollectioNames   []string `json:"collectio_names"`
 }
 
 type PrarthanaSearchDoc struct {
-	ID         string            `bson:"_id"`
-	TmpID      string            `bson:"TmpId"`
-	Title      map[string]string `bson:"title"`
-	Deity      []DeityDocument   `bson:"deity"`
-	Variants   []Variant         `bson:"variants"`
-	StotraDocs []Stotra          `bson:"stotra_docs"`
-	ShlokDocs  []Shlok           `bson:"shlok_docs"`
-	UIDetails  PrarthanaUIInfo   `bson:"ui_info"`
-	AudioInfo  AudioInfo         `json:"audio_info" bson:"audio_info"`
+	ID             string               `bson:"_id"`
+	TmpID          string               `bson:"TmpId"`
+	Title          map[string]string    `bson:"title"`
+	Deity          []DeityDocument      `bson:"deity"`
+	Variants       []Variant            `bson:"variants"`
+	StotraDocs     []Stotra             `bson:"stotra_docs"`
+	ShlokDocs      []Shlok              `bson:"shlok_docs"`
+	UIDetails      PrarthanaUIInfo      `bson:"ui_info"`
+	AudioInfo      AudioInfo            `json:"audio_info" bson:"audio_info"`
+	CollectionName []CollectionDocument `bson:"collection_name"`
+}
+
+type CollectionDocument struct {
+	ID        string            `bson:"_id"`
+	Name      map[string]string `bson:"name"`
+	Slug      string            `bson:"slug"`
+	Key       string            `bson:"key"`
+	Thumbnail string            `bson:"thumbnail"`
+	SubTitle  map[string]string `bson:"sub_title"`
+	Title     map[string]string `bson:"title"`
+	Status    bool              `bson:"status"`
 }
