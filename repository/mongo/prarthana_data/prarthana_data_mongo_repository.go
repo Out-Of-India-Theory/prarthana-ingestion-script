@@ -17,28 +17,31 @@ import (
 )
 
 const (
-	prarthana_collection = "prarthanas"
-	deity_collection     = "deities"
-	shlok_collection     = "shloks"
-	stotra_collection    = "stotras"
+	prarthana_collection             = "prarthanas"
+	deity_collection                 = "deities"
+	shlok_collection                 = "shloks"
+	stotra_collection                = "stotras"
+	prarthana_collections_collection = "prarthana_collections"
 )
 
 type PrarthanaDataMongoRepository struct {
-	logger              *zap.Logger
-	prarthanaCollection *mongo.Collection
-	deityCollection     *mongo.Collection
-	shlokCollection     *mongo.Collection
-	stotraCollection    *mongo.Collection
+	logger                         *zap.Logger
+	prarthanaCollection            *mongo.Collection
+	deityCollection                *mongo.Collection
+	shlokCollection                *mongo.Collection
+	stotraCollection               *mongo.Collection
+	prarthanaCollectionsCollection *mongo.Collection
 }
 
 func InitPrarthanaDataMongoRepository(ctx context.Context, config configuration.Configuration) *PrarthanaDataMongoRepository {
 	mongoClient := mongoCommons.InitMongoClient(ctx, config.MongoConfig)
 	return &PrarthanaDataMongoRepository{
-		logger:              logging.WithContext(ctx),
-		prarthanaCollection: mongoClient.Database(config.MongoConfig.Database).Collection(prarthana_collection),
-		deityCollection:     mongoClient.Database(config.MongoConfig.Database).Collection(deity_collection),
-		shlokCollection:     mongoClient.Database(config.MongoConfig.Database).Collection(shlok_collection),
-		stotraCollection:    mongoClient.Database(config.MongoConfig.Database).Collection(stotra_collection),
+		logger:                         logging.WithContext(ctx),
+		prarthanaCollection:            mongoClient.Database(config.MongoConfig.Database).Collection(prarthana_collection),
+		deityCollection:                mongoClient.Database(config.MongoConfig.Database).Collection(deity_collection),
+		shlokCollection:                mongoClient.Database(config.MongoConfig.Database).Collection(shlok_collection),
+		stotraCollection:               mongoClient.Database(config.MongoConfig.Database).Collection(stotra_collection),
+		prarthanaCollectionsCollection: mongoClient.Database(config.MongoConfig.Database).Collection(prarthana_collections_collection),
 	}
 }
 
@@ -433,6 +436,27 @@ func (r *PrarthanaDataMongoRepository) PullPrarthanaDocs(ctx context.Context) []
 			{"localField", "stotra_docs.shlok_ids"},
 			{"foreignField", "_id"},
 			{"as", "shlok_docs"},
+		}}},
+		{{"$lookup", bson.D{
+			{"from", "prarthana_collections"},
+			{"let", bson.D{{"prarthanaId", "$_id"}}},
+			{"pipeline", bson.A{
+				bson.D{{"$match", bson.D{
+					{"$expr", bson.D{
+						{"$in", bson.A{
+							"$$prarthanaId",
+							bson.D{{"$ifNull", bson.A{"$prarthana_ids", bson.A{}}}},
+						}},
+					}},
+				}}},
+				bson.D{{"$project", bson.D{
+					{"_id", 1},
+					{"name", 1},
+					{"thumbnail", 1},
+					{"status", 1},
+				}}},
+			}},
+			{"as", "collection_name"},
 		}}},
 	}
 
