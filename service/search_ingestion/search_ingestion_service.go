@@ -8,6 +8,7 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/es/prarthana"
 	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
 	"go.uber.org/zap"
+	"strconv"
 	"time"
 )
 
@@ -102,5 +103,32 @@ func (s *SearchIngestionService) InsertPrarthanaSearchData(ctx context.Context) 
 		}
 	}
 
+	return nil
+}
+
+func (s *SearchIngestionService) IngestPoojaSearch(ctx context.Context) error {
+	languages := []string{"default", "hi", "mr", "ta", "te", "kn", "gu"}
+	poojaDocs := s.prarthanaMongoRepository.ListPooja(ctx)
+
+	for _, doc := range poojaDocs {
+		for _, language := range languages {
+			var deities []string
+			for _, deity := range doc.Deities {
+				deities = append(deities, deity.Title[language])
+			}
+			price, _ := strconv.Atoi(doc.Price)
+			esDoc := entity.PoojaESDocument{
+				ID:           doc.ID,
+				Title:        doc.Title[language],
+				Key:          doc.Key,
+				ThumbnailUrl: doc.ThumbnailUrl,
+				DeityNames:   deities,
+				Price:        price,
+			}
+			if err := s.prarthanaESRepository.InsertPoojaSearchDocument(esDoc); err != nil {
+				return fmt.Errorf("failed to index prarthana document for ID '%s', lang '%s': %w", doc.ID, language, err)
+			}
+		}
+	}
 	return nil
 }

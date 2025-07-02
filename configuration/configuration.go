@@ -29,6 +29,7 @@ type ESConfig struct {
 	Auth           string
 	DeityIndex     string
 	PrarthanaIndex string
+	PoojaIndex     string
 }
 
 type UIConfig struct {
