@@ -98,7 +98,7 @@ func (s *SearchIngestionService) InsertPrarthanaSearchData(ctx context.Context) 
 			}
 			for _, collection := range doc.CollectionName {
 				if title, ok := collection.Title[language]; ok && title != "" {
-					output.CollectioNames = append(output.CollectioNames, title)
+					output.CategoryNames = append(output.CategoryNames, title)
 				}
 			}
 			if err := s.prarthanaESRepository.InsertPrarthanaSearchDocument(output); err != nil {

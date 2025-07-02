@@ -63,7 +63,7 @@ type PrarthanaSearchData struct {
 	Shloks           []string `json:"shloks"`
 	ImageURL         string   `json:"image_url"`
 	IsAudioAvailable bool     `json:"is_audio_available"`
-	CollectioNames   []string `json:"collectio_names"`
+	CategoryNames    []string `json:"category_names"`
 }
 
 type PrarthanaSearchDoc struct {
