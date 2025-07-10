@@ -98,8 +98,8 @@ func (s *SearchIngestionService) InsertPrarthanaSearchData(ctx context.Context) 
 				output.Shloks = append(output.Shloks, shlokDoc.Shlok[langMap[language]])
 			}
 			for _, collection := range doc.CollectionName {
-				if title, ok := collection.Title[language]; ok && title != "" {
-					output.CategoryNames = append(output.CategoryNames, title)
+				if name, ok := collection.Name[language]; ok && name != "" {
+					output.CategoryNames = append(output.CategoryNames, name)
 				}
 			}
 			if err := s.prarthanaESRepository.InsertPrarthanaSearchDocument(output); err != nil {

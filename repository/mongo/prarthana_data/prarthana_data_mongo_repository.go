@@ -3,6 +3,9 @@ package prarthana_data
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	mongoCommons "github.com/Out-Of-India-Theory/oit-go-commons/mongo"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
@@ -12,38 +15,36 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-	"log"
-	"time"
 )
 
 const (
-	prarthana_collection = "prarthanas"
-	deity_collection     = "deities"
-	shlok_collection     = "shloks"
-	stotra_collection    = "stotras"
-	pooja_collection     = "pooja_catalogue"
+	prarthana_collection             = "prarthanas"
+	deity_collection                 = "deities"
+	shlok_collection                 = "shloks"
+	stotra_collection                = "stotras"
+	pooja_collection                 = "pooja_catalogue"
 	prarthana_collections_collection = "prarthana_collections"
 )
 
 type PrarthanaDataMongoRepository struct {
-	logger              *zap.Logger
-	prarthanaCollection *mongo.Collection
-	deityCollection     *mongo.Collection
-	shlokCollection     *mongo.Collection
-	stotraCollection    *mongo.Collection
-	poojaCollection     *mongo.Collection
+	logger                         *zap.Logger
+	prarthanaCollection            *mongo.Collection
+	deityCollection                *mongo.Collection
+	shlokCollection                *mongo.Collection
+	stotraCollection               *mongo.Collection
+	poojaCollection                *mongo.Collection
 	prarthanaCollectionsCollection *mongo.Collection
 }
 
 func InitPrarthanaDataMongoRepository(ctx context.Context, config configuration.Configuration) *PrarthanaDataMongoRepository {
 	mongoClient := mongoCommons.InitMongoClient(ctx, config.MongoConfig)
 	return &PrarthanaDataMongoRepository{
-		logger:              logging.WithContext(ctx),
-		prarthanaCollection: mongoClient.Database(config.MongoConfig.Database).Collection(prarthana_collection),
-		deityCollection:     mongoClient.Database(config.MongoConfig.Database).Collection(deity_collection),
-		shlokCollection:     mongoClient.Database(config.MongoConfig.Database).Collection(shlok_collection),
-		stotraCollection:    mongoClient.Database(config.MongoConfig.Database).Collection(stotra_collection),
-		poojaCollection:     mongoClient.Database(config.MongoConfig.Database).Collection(pooja_collection),
+		logger:                         logging.WithContext(ctx),
+		prarthanaCollection:            mongoClient.Database(config.MongoConfig.Database).Collection(prarthana_collection),
+		deityCollection:                mongoClient.Database(config.MongoConfig.Database).Collection(deity_collection),
+		shlokCollection:                mongoClient.Database(config.MongoConfig.Database).Collection(shlok_collection),
+		stotraCollection:               mongoClient.Database(config.MongoConfig.Database).Collection(stotra_collection),
+		poojaCollection:                mongoClient.Database(config.MongoConfig.Database).Collection(pooja_collection),
 		prarthanaCollectionsCollection: mongoClient.Database(config.MongoConfig.Database).Collection(prarthana_collections_collection),
 	}
 }
@@ -422,25 +423,55 @@ func (r *PrarthanaDataMongoRepository) PullDeityDocs(ctx context.Context) []enti
 
 func (r *PrarthanaDataMongoRepository) PullPrarthanaDocs(ctx context.Context) []entity.PrarthanaSearchDoc {
 	pipeline := mongo.Pipeline{
-		{{"$lookup", bson.D{
+		// Optional match to reduce base docs early
+		bson.D{{"$match", bson.D{
+			{"variants.chapters.stotra_ids", bson.D{{"$exists", true}}},
+		}}},
+
+		// Lookup deities (reverse lookup)
+		bson.D{{"$lookup", bson.D{
 			{"from", "deities"},
 			{"localField", "_id"},
 			{"foreignField", "prarthanas"},
 			{"as", "deity"},
 		}}},
-		{{"$lookup", bson.D{
+
+		// Lookup stotras with projection
+		bson.D{{"$lookup", bson.D{
 			{"from", "stotras"},
-			{"localField", "variants.chapters.stotra_ids"},
-			{"foreignField", "_id"},
+			{"let", bson.D{{"stotraIds", "$variants.chapters.stotra_ids"}}},
+			{"pipeline", bson.A{
+				bson.D{{"$match", bson.D{
+					{"$expr", bson.D{{"$in", bson.A{"$_id", "$$stotraIds"}}}},
+				}}},
+				bson.D{{"$project", bson.D{
+					{"_id", 1},
+					{"title", 1},
+					{"shlok_ids", 1},
+				}}},
+			}},
 			{"as", "stotra_docs"},
 		}}},
-		{{"$lookup", bson.D{
+
+		// Lookup shloks from stotra_docs
+		bson.D{{"$lookup", bson.D{
 			{"from", "shloks"},
-			{"localField", "stotra_docs.shlok_ids"},
-			{"foreignField", "_id"},
+			{"let", bson.D{{"shlokIds", "$stotra_docs.shlok_ids"}}},
+			{"pipeline", bson.A{
+				bson.D{{"$match", bson.D{
+					{"$expr", bson.D{{"$in", bson.A{"$_id", "$$shlokIds"}}}},
+				}}},
+				bson.D{{"$project", bson.D{
+					{"_id", 1},
+					{"text", 1},
+					{"order", 1},
+				}}},
+			}},
 			{"as", "shlok_docs"},
 		}}},
-		{{"$lookup", bson.D{
+
+		// Lookup prarthana collections
+		bson.D{{"$lookup", bson.D{
 			{"from", "prarthana_collections"},
 			{"let", bson.D{{"prarthanaId", "$_id"}}},
 			{"pipeline", bson.A{
