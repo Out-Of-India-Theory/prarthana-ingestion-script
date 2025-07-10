@@ -58,6 +58,9 @@ func (s *SearchIngestionService) InsertDeitySearchData(ctx context.Context) erro
 }
 
 func (s *SearchIngestionService) InsertPrarthanaSearchData(ctx context.Context) error {
+	if err := s.prarthanaESRepository.CleanupPrarthana(); err != nil {
+		return err
+	}
 	languages := []string{"default", "hi", "mr", "ta", "te", "kn", "gu"}
 	langMap := map[string]string{
 		"default": "english",
@@ -114,6 +117,10 @@ func (s *SearchIngestionService) InsertPrarthanaSearchData(ctx context.Context) 
 func (s *SearchIngestionService) IngestPoojaSearch(ctx context.Context) error {
 	languages := []string{"default", "hi", "mr", "ta", "te", "kn", "gu"}
 	poojaDocs := s.prarthanaMongoRepository.ListPooja(ctx)
+
+	if err := s.prarthanaESRepository.CleanupPooja(); err != nil {
+		return err
+	}
 
 	for _, doc := range poojaDocs {
 		for _, language := range languages {
