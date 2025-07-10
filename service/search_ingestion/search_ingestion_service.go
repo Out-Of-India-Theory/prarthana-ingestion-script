@@ -97,6 +97,11 @@ func (s *SearchIngestionService) InsertPrarthanaSearchData(ctx context.Context) 
 			for _, shlokDoc := range doc.ShlokDocs {
 				output.Shloks = append(output.Shloks, shlokDoc.Shlok[langMap[language]])
 			}
+			for _, collection := range doc.CollectionName {
+				if name, ok := collection.Name[language]; ok && name != "" {
+					output.CategoryNames = append(output.CategoryNames, name)
+				}
+			}
 			if err := s.prarthanaESRepository.InsertPrarthanaSearchDocument(output); err != nil {
 				return fmt.Errorf("failed to index prarthana document for ID '%s', lang '%s': %w", doc.ID, language, err)
 			}
