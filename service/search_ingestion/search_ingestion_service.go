@@ -75,38 +75,40 @@ func (s *SearchIngestionService) InsertPrarthanaSearchData(ctx context.Context) 
 
 	//var outputs []entity.PrarthanaSearchData
 	for _, doc := range prarthanaDocs {
-		for _, language := range languages {
-			duration := doc.Variants[0].Duration
-			pDuration, _ := time.ParseDuration(duration)
-			output := entity.PrarthanaSearchData{
-				ID:       doc.ID,
-				Title:    doc.Title[language],
-				Duration: fmt.Sprintf(DurationInMin, pDuration.Minutes()),
-			}
+		if doc.Variants != nil && len(doc.Variants) > 0 {
+			for _, language := range languages {
+				duration := doc.Variants[0].Duration
+				pDuration, _ := time.ParseDuration(duration)
+				output := entity.PrarthanaSearchData{
+					ID:       doc.ID,
+					Title:    doc.Title[language],
+					Duration: fmt.Sprintf(DurationInMin, pDuration.Minutes()),
+				}
 
-			for _, deityDoc := range doc.Deity {
-				output.DeityNames = append(output.DeityNames, deityDoc.Title[language])
-				// Append non-empty aliases to DeityNames
-				if language == "default" {
-					for _, alias := range deityDoc.Aliases {
-						if alias != "" {
-							output.DeityNames = append(output.DeityNames, alias)
+				for _, deityDoc := range doc.Deity {
+					output.DeityNames = append(output.DeityNames, deityDoc.Title[language])
+					// Append non-empty aliases to DeityNames
+					if language == "default" {
+						for _, alias := range deityDoc.Aliases {
+							if alias != "" {
+								output.DeityNames = append(output.DeityNames, alias)
+							}
 						}
 					}
 				}
-			}
-			output.ImageURL = doc.UIDetails.DefaultImageUrl
-			output.IsAudioAvailable = doc.AudioInfo.IsAudioAvailable
-			for _, shlokDoc := range doc.ShlokDocs {
-				output.Shloks = append(output.Shloks, shlokDoc.Shlok[langMap[language]])
-			}
-			for _, collection := range doc.CollectionName {
-				if name, ok := collection.Name[language]; ok && name != "" {
-					output.CategoryNames = append(output.CategoryNames, name)
+				output.ImageURL = doc.UIDetails.DefaultImageUrl
+				output.IsAudioAvailable = doc.AudioInfo.IsAudioAvailable
+				for _, shlokDoc := range doc.ShlokDocs {
+					output.Shloks = append(output.Shloks, shlokDoc.Shlok[langMap[language]])
 				}
-			}
-			if err := s.prarthanaESRepository.InsertPrarthanaSearchDocument(output); err != nil {
-				return fmt.Errorf("failed to index prarthana document for ID '%s', lang '%s': %w", doc.ID, language, err)
+				for _, collection := range doc.CollectionName {
+					if name, ok := collection.Name[language]; ok && name != "" {
+						output.CategoryNames = append(output.CategoryNames, name)
+					}
+				}
+				if err := s.prarthanaESRepository.InsertPrarthanaSearchDocument(output); err != nil {
+					return fmt.Errorf("failed to index prarthana document for ID '%s', lang '%s': %w", doc.ID, language, err)
+				}
 			}
 		}
 	}

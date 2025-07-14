@@ -10,7 +10,7 @@
   },
   "MongoConfig": {
     "URI": "config_uri",
-    "Timeout": "10s",
+    "Timeout": "20s",
     "Database": "prarthana_service_stage"
   },
   "ZohoConfig": {
