@@ -423,54 +423,24 @@ func (r *PrarthanaDataMongoRepository) PullDeityDocs(ctx context.Context) []enti
 
 func (r *PrarthanaDataMongoRepository) PullPrarthanaDocs(ctx context.Context) []entity.PrarthanaSearchDoc {
 	pipeline := mongo.Pipeline{
-		// Optional match to reduce base docs early
-		bson.D{{"$match", bson.D{
-			{"variants.chapters.stotra_ids", bson.D{{"$exists", true}}},
-		}}},
-
-		// Lookup deities (reverse lookup)
-		bson.D{{"$lookup", bson.D{
+		{{"$lookup", bson.D{
 			{"from", "deities"},
 			{"localField", "_id"},
 			{"foreignField", "prarthanas"},
 			{"as", "deity"},
 		}}},
-
-		// Lookup stotras with projection
-		bson.D{{"$lookup", bson.D{
+		{{"$lookup", bson.D{
 			{"from", "stotras"},
-			{"let", bson.D{{"stotraIds", "$variants.chapters.stotra_ids"}}},
-			{"pipeline", bson.A{
-				bson.D{{"$match", bson.D{
-					{"$expr", bson.D{{"$in", bson.A{"$_id", "$$stotraIds"}}}},
-				}}},
-				bson.D{{"$project", bson.D{
-					{"_id", 1},
-					{"title", 1},
-					{"shlok_ids", 1},
-				}}},
-			}},
+			{"localField", "variants.chapters.stotra_ids"},
+			{"foreignField", "_id"},
 			{"as", "stotra_docs"},
 		}}},
-
-		// Lookup shloks from stotra_docs
-		bson.D{{"$lookup", bson.D{
+		{{"$lookup", bson.D{
 			{"from", "shloks"},
-			{"let", bson.D{{"shlokIds", "$stotra_docs.shlok_ids"}}},
-			{"pipeline", bson.A{
-				bson.D{{"$match", bson.D{
-					{"$expr", bson.D{{"$in", bson.A{"$_id", "$$shlokIds"}}}},
-				}}},
-				bson.D{{"$project", bson.D{
-					{"_id", 1},
-					{"text", 1},
-					{"order", 1},
-				}}},
-			}},
+			{"localField", "stotra_docs.shlok_ids"},
+			{"foreignField", "_id"},
 			{"as", "shlok_docs"},
 		}}},
-
-		// Lookup prarthana collections
 		bson.D{{"$lookup", bson.D{
 			{"from", "prarthana_collections"},
 			{"let", bson.D{{"prarthanaId", "$_id"}}},
@@ -507,7 +477,6 @@ func (r *PrarthanaDataMongoRepository) PullPrarthanaDocs(ctx context.Context) []
 			log.Fatal(err)
 		}
 		prarthanas = append(prarthanas, result)
-		//fmt.Println(result)
 	}
 	if err := cursor.Err(); err != nil {
 		log.Fatal(err)
