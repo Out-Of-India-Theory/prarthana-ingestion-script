@@ -29,6 +29,8 @@ func registerRoutes(ctx context.Context, app *app.App, service facade.Service, c
 		prarthanaIngestionV1.GET("/prarthanas-search", prarthanaIngestionController.PrarthanaSearchIngestion)
 		prarthanaIngestionV1.GET("/pooja-search", prarthanaIngestionController.PoojaSearchIngestion)
 		prarthanaIngestionV1.POST("/shlokas-translation", am.ZohoAuthMiddleware(), prarthanaIngestionController.ShlokTranslationGeneration)
+		prarthanaIngestionV1.GET("/update", prarthanaIngestionController.UpdatePrarthanaDoc)
+
 	}
 	app.Engine.LoadHTMLGlob("ingestion/*.html")
 	app.Engine.GET("/ingestion/prarthana/prarthana.html", func(c *gin.Context) {

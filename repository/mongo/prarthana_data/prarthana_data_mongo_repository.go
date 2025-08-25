@@ -522,3 +522,37 @@ func (r *PrarthanaDataMongoRepository) ListPooja(ctx context.Context) []entity.P
 	}
 	return poojas
 }
+
+func (r *PrarthanaDataMongoRepository) GetDeitiesName(ctx context.Context, pdMap map[string]string) (map[string]string, error) {
+	deityNames := make(map[string]string)
+	for pId, dId := range pdMap {
+		filter := bson.M{"TmpId": dId}
+		projection := bson.M{"title.default": 1}
+		result := r.deityCollection.FindOne(ctx, filter, options.FindOne().SetProjection(projection))
+		if result.Err() != nil {
+			return nil, fmt.Errorf("error fetching deity with Id %s", dId)
+		}
+		var deity entity.DeityDocument
+		if err := result.Decode(&deity); err != nil {
+			return nil, fmt.Errorf("error decoding deity document with Id %s", dId)
+		}
+		deityNames[pId] = deity.Title["default"]
+	}
+	return deityNames, nil
+}
+
+func (r *PrarthanaDataMongoRepository) FetchPrarthanaDocs(ctx context.Context) ([]entity.Prarthana, error) {
+	cursor, err := r.prarthanaCollection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var deities []entity.Prarthana
+	if err = cursor.All(ctx, &deities); err != nil {
+		return nil, err
+	}
+
+	return deities, nil
+
+}

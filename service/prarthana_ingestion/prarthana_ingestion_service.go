@@ -5,6 +5,13 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"log"
+	"math"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
 	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
@@ -12,12 +19,6 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"log"
-	"math"
-	"os"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 type PrarthanaIngestionService struct {
@@ -391,4 +392,89 @@ func PreparePrarthanaToDeityMap(csvFilePath string) (map[string]string, map[stri
 		dpMap[record[fieldMap["Diety ID"]]] = append(dpMap[record[fieldMap["Diety ID"]]], record[fieldMap["Prarthana ID"]])
 	}
 	return pdmap, dpMap
+}
+
+func (s *PrarthanaIngestionService) UpdatePrarthanaImages(ctx context.Context) error {
+	var response entity.ShlokaSheetResponse
+	err := s.zohoService.GetSheetData(ctx, "album art to deity mapping", &response)
+	if err != nil {
+		return err
+	}
+	pdMap, err := s.preparePrarthanaToDeityMap(ctx)
+	if err != nil {
+		log.Fatalf("Error generating Prarthana TmpId to Deity ID map: %v", err)
+	}
+	//preparing a prarthana Id to deity name map
+	prarthanaIdToDeityNameMap, err := s.prarthanaMongoRepository.GetDeitiesName(ctx, pdMap)
+	if err != nil {
+		fmt.Errorf("error fetching deity names: %v", err)
+		return err
+	}
+	deityCounter := make(map[string]int)
+
+	//fecthing prarthana document
+	prarthanaDocs, err := s.prarthanaMongoRepository.FetchPrarthanaDocs(ctx)
+	if err != nil {
+		fmt.Errorf("error fetching prarthana mongo docs : %v", err)
+		return err
+	}
+	var prarthanas []entity.Prarthana
+	for _, prarthana := range prarthanaDocs {
+		defaultTitle := prarthanaIdToDeityNameMap[prarthana.TmpId]
+		deityCounter[defaultTitle]++ //increase the counter to track the images no
+		count := deityCounter[defaultTitle]
+		defaultTitle = fmt.Sprintf("%s%02d", strings.ReplaceAll(strings.ToLower(defaultTitle), " ", "_"), count)
+		imageURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s%02d.png", defaultTitle, count)
+		prarthana.UiInfo = entity.PrarthanaUIInfo{
+			AlbumArt:        imageURL,
+			DefaultImageUrl: imageURL,
+			TemplateNumber:  fmt.Sprintf("template_%d", count),
+		}
+		prarthanas = append(prarthanas, prarthana)
+	}
+	if err = s.prarthanaMongoRepository.InsertManyPrarthanas(ctx, prarthanas); err != nil {
+		return fmt.Errorf("error updating prarthana images")
+	}
+	return nil
+}
+
+func (s *PrarthanaIngestionService) preparePrarthanaToDeityMap(ctx context.Context) (map[string]string, error) {
+	var response entity.ShlokaSheetResponse
+	err := s.zohoService.GetSheetData(ctx, "deity to prarthana mapping", &response)
+	if err != nil {
+		return nil, err
+	}
+	if len(response.Records) == 0 {
+		return nil, errors.New("no records found")
+	}
+	pdmap := make(map[string]string)
+	for i, record := range response.Records {
+		var prarthanaIds []string
+
+		switch v := record["Prarthana ID"].(type) {
+		case float64:
+			prarthanaIds = []string{strconv.FormatFloat(v, 'f', -1, 64)}
+		case string:
+			if v == "" {
+				return nil, fmt.Errorf("row %d: prarthana ID is empty string", i+2) // +2 to match sheet row (1-indexed + header)
+			}
+			prarthanaIds = util.GetSplittedString(v)
+		default:
+			return nil, fmt.Errorf("row %d: invalid prarthana ID type", i+2)
+		}
+
+		deityIdString := fmt.Sprintf("%v", record["Diety ID"])
+		if len(deityIdString) == 0 {
+			// Skip mapping if deity ID is empty
+			continue
+		}
+		deityIds := util.GetSplittedString(deityIdString)
+
+		for _, prarthanaId := range prarthanaIds {
+			for _, deityId := range deityIds {
+				pdmap[prarthanaId] = deityId
+			}
+		}
+	}
+	return pdmap, nil
 }

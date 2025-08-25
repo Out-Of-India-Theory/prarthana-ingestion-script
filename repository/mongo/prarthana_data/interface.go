@@ -19,4 +19,6 @@ type MongoRepository interface {
 	PullDeityDocs(ctx context.Context) []entity.DeityDocument
 	PullPrarthanaDocs(ctx context.Context) []entity.PrarthanaSearchDoc
 	ListPooja(ctx context.Context) []entity.PoojaMongoDocument
+	GetDeitiesName(ctx context.Context, pdMap map[string]string) (map[string]string, error)
+	FetchPrarthanaDocs(ctx context.Context) ([]entity.Prarthana, error)
 }

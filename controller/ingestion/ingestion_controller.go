@@ -183,3 +183,20 @@ func (con *Controller) PoojaSearchIngestion(c *gin.Context) {
 		"data":    nil,
 	})
 }
+
+func(con *Controller) UpdatePrarthanaDoc(c *gin.Context) {
+	ctx := c.Request.Context()
+	err := con.service.PrarthanaIngestionService().UpdatePrarthanaImages(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Error processing request: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  http.StatusOK,
+		"message": "Successful",
+		"data":    nil,
+	})
+}
