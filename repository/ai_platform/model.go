@@ -13,4 +13,5 @@ type BatchTranslateRequest struct {
 	Texts           []string `json:"texts"`
 	TargetLanguage  string   `json:"target_language"`
 	IsTransliterate bool     `json:"is_transliterate"`
+	PromptId        *int     `json:"prompt_id"`
 }

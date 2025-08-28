@@ -37,7 +37,7 @@ func (r *OpenAIClientRepository) TranslateText(text string, lang string, isTrans
 	if isTranslation {
 		taskPrompt = fmt.Sprintf(
 			"Translate this Sanskrit Shloka to everyday formal vernacular language in %s. Provide only the translated text without any explanations. Only return the translated text in plain %s script. Do not include any symbols, special characters (like ॐ, ।, -, (), etc.), or explanations. The output should only contain standard %s words, without any non-language elements.",
-			lang, lang,
+			lang, lang,lang,
 		)
 	} else {
 		taskPrompt = fmt.Sprintf(

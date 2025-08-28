@@ -32,7 +32,7 @@ func InitPlatformAIClientRepository(ctx context.Context, config configuration.Co
 
 const translateURI = "ai-platform/v1/translate/batch"
 
-func (r *PlatformAIClientRepository) BatchTranslateText(ctx context.Context, texts []string, lang string, isTransliterate bool) ([]TranslateText, error) {
+func (r *PlatformAIClientRepository) BatchTranslateText(ctx context.Context, texts []string, lang string, isTransliterate bool, promptId int) ([]TranslateText, error) {
 	url := fmt.Sprintf("%s/%s", r.clientConfig.Address, translateURI)
 	r.logger.Info("Final translation URL", zap.String("url", url))
 
@@ -40,6 +40,7 @@ func (r *PlatformAIClientRepository) BatchTranslateText(ctx context.Context, tex
 		Texts:           texts,
 		TargetLanguage:  lang,
 		IsTransliterate: isTransliterate,
+		PromptId:        &promptId,
 	}
 	header := http.Header{}
 	header.Set("Content-Type", "application/json")
