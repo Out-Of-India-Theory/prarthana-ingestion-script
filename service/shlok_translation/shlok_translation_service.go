@@ -35,8 +35,8 @@ func InitShlokTranslationService(ctx context.Context,
 	}
 }
 
-func (s *ShlokTranslationService) GetTranslation(ctx context.Context, text []string, lang string, isTransliterate bool, promptId int) []ai_platform.TranslateText {
-	translatedText, err := s.aiplatformClientRepository.BatchTranslateText(ctx, text, lang, isTransliterate, promptId)
+func (s *ShlokTranslationService) GetTranslation(ctx context.Context, text []string, lang string, promptId int) []ai_platform.TranslateText {
+	translatedText, err := s.aiplatformClientRepository.BatchTranslateText(ctx, text, lang, promptId)
 	if err != nil {
 		log.Printf("Error translating to %s: %v", lang, err)
 		return nil
@@ -86,7 +86,8 @@ func (s *ShlokTranslationService) GenerateShlokaTranslation(ctx context.Context,
 				go func(lang string) {
 					defer wg.Done()
 					textInput := []string{textSanskrit}
-					raw := s.GetTranslation(ctx, textInput, lang, true, 14)
+					raw := s.GetTranslation(ctx, textInput, lang, 15)
+					log.Printf("[DEBUG translit] lang=%s, raw=%+v\n", lang, raw)
 					translated := "[MISSING]"
 					if len(raw) > 0 && strings.TrimSpace(raw[0].Translation) != "" {
 						translated = raw[0].Translation
@@ -99,7 +100,7 @@ func (s *ShlokTranslationService) GenerateShlokaTranslation(ctx context.Context,
 				go func(lang string) {
 					defer wg.Done()
 					textInput := []string{textSanskrit}
-					trans := s.GetTranslation(ctx, textInput, lang, false, 10)
+					trans := s.GetTranslation(ctx, textInput, lang, 14)
 					translated := "[MISSING]"
 					if len(trans) > 0 && strings.TrimSpace(trans[0].Translation) != "" {
 						translated = trans[0].Translation
