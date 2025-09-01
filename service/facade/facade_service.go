@@ -2,6 +2,7 @@ package facade
 
 import (
 	"context"
+
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/deity_ingestion"
@@ -10,6 +11,7 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_translation"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/stotra_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/verse_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
 	"go.uber.org/zap"
 )
@@ -24,6 +26,7 @@ type FacadeService struct {
 	zohoAuthService           zoho.Service
 	searchIngestionService    search_ingestion.Service
 	shlokTranslationService   shlok_translation.Service
+	verseIngestionService     verse_ingestion.Service
 }
 
 func InitFacadeService(
@@ -36,6 +39,7 @@ func InitFacadeService(
 	zohoAuthService zoho.Service,
 	searchIngestionService search_ingestion.Service,
 	shlokTranslationService shlok_translation.Service,
+	verseIngestionService verse_ingestion.Service,
 ) *FacadeService {
 	return &FacadeService{
 		logger:                    logging.WithContext(ctx),
@@ -47,6 +51,7 @@ func InitFacadeService(
 		zohoAuthService:           zohoAuthService,
 		searchIngestionService:    searchIngestionService,
 		shlokTranslationService:   shlokTranslationService,
+		verseIngestionService:     verseIngestionService,
 	}
 }
 
@@ -76,4 +81,8 @@ func (s *FacadeService) SearchIngestionService() search_ingestion.Service {
 
 func (s *FacadeService) ShlokTranslationService() shlok_translation.Service {
 	return s.shlokTranslationService
+}
+
+func (s *FacadeService) VerseIngestionService() verse_ingestion.Service {
+	return s.verseIngestionService
 }

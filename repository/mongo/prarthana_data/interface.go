@@ -19,4 +19,5 @@ type MongoRepository interface {
 	PullDeityDocs(ctx context.Context) []entity.DeityDocument
 	PullPrarthanaDocs(ctx context.Context) []entity.PrarthanaSearchDoc
 	ListPooja(ctx context.Context) []entity.PoojaMongoDocument
+	InsertManyVerses(ctx context.Context, verses []entity.Verse) error 
 }

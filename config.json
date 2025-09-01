@@ -1,6 +1,6 @@
 {
   "ServerConfig": {
-    "Port": "8080",
+    "Port": "8082",
     "Env": "DEV",
     "PrometheusPort": "8085",
     "PrometheusEnabled": false,

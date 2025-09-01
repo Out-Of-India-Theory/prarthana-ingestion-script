@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/Out-Of-India-Theory/oit-go-commons/app"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/es/prarthana"
@@ -15,10 +17,10 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_translation"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/stotra_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/verse_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
 	"github.com/gin-gonic/gin"
 	"github.com/newrelic/go-agent/v3/newrelic"
-	"net/http"
 )
 
 func InitServer(ctx context.Context, app *app.App, configuration *configuration.Configuration) {
@@ -35,8 +37,9 @@ func InitServer(ctx context.Context, app *app.App, configuration *configuration.
 	deityIngestionService := deity_ingestion.InitDeityIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
 	searchIngestionService := search_ingestion.InitSearchIngestionService(ctx, prarthanaDataMongoRepository, prarthanaESRepository)
 	shlokTranslationService := shlok_translation.InitShlokTranslationService(ctx, zohoService, openaiClientRepository)
+	verseIngestionService := verse_ingestion.InitVerseIngestionService(ctx, prarthanaDataMongoRepository, zohoService)
 
-	facadeService := facade.InitFacadeService(ctx, configuration, shlokIngestionService, stotraIngestionService, prarthanaIngestionService, deityIngestionService, zohoService, searchIngestionService, shlokTranslationService)
+	facadeService := facade.InitFacadeService(ctx, configuration, shlokIngestionService, stotraIngestionService, prarthanaIngestionService, deityIngestionService, zohoService, searchIngestionService, shlokTranslationService, verseIngestionService)
 	registerMiddleware(app, configuration)
 	registerRoutes(ctx, app, facadeService, configuration)
 

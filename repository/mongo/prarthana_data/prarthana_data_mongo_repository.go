@@ -24,6 +24,7 @@ const (
 	stotra_collection                = "stotras"
 	pooja_collection                 = "pooja_catalogue"
 	prarthana_collections_collection = "prarthana_collections"
+	verses_collection                = "demo1"
 )
 
 type PrarthanaDataMongoRepository struct {
@@ -34,6 +35,7 @@ type PrarthanaDataMongoRepository struct {
 	stotraCollection               *mongo.Collection
 	poojaCollection                *mongo.Collection
 	prarthanaCollectionsCollection *mongo.Collection
+	verseCollection                *mongo.Collection
 }
 
 func InitPrarthanaDataMongoRepository(ctx context.Context, config configuration.Configuration) *PrarthanaDataMongoRepository {
@@ -46,6 +48,7 @@ func InitPrarthanaDataMongoRepository(ctx context.Context, config configuration.
 		stotraCollection:               mongoClient.Database(config.MongoConfig.Database).Collection(stotra_collection),
 		poojaCollection:                mongoClient.Database(config.MongoConfig.Database).Collection(pooja_collection),
 		prarthanaCollectionsCollection: mongoClient.Database(config.MongoConfig.Database).Collection(prarthana_collections_collection),
+		verseCollection:                mongoClient.Database(config.MongoConfig.Database).Collection(verses_collection),
 	}
 }
 
@@ -521,4 +524,17 @@ func (r *PrarthanaDataMongoRepository) ListPooja(ctx context.Context) []entity.P
 		log.Fatal(err)
 	}
 	return poojas
+}
+
+func (r *PrarthanaDataMongoRepository) InsertManyVerses(ctx context.Context, verses []entity.Verse) error {
+	if len(verses) == 0 {
+		return nil
+	}
+	var documents []interface{}
+	for _, verse := range verses {
+		documents = append(documents, verse)
+	}
+
+	_, err := r.verseCollection.InsertMany(ctx, documents)
+	return err
 }

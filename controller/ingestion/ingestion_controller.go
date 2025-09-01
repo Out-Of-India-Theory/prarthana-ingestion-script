@@ -2,6 +2,8 @@ package ingestion
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
@@ -9,7 +11,6 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 type Controller struct {
@@ -170,6 +171,32 @@ func (con *Controller) PrarthanaSearchIngestion(c *gin.Context) {
 func (con *Controller) PoojaSearchIngestion(c *gin.Context) {
 	ctx := c.Request.Context()
 	err := con.service.SearchIngestionService().IngestPoojaSearch(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Error processing request: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  http.StatusOK,
+		"message": "Successful",
+		"data":    nil,
+	})
+}
+
+func (con *Controller) VerseIngestion(c *gin.Context) {
+	ctx := c.Request.Context()
+	ctx = util.SetZohoAccessTokenInContext(ctx, c.Request.Header.Get("zoho-access-token"))
+	var requestBody entity.IngestionRequest
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  http.StatusBadRequest,
+			"message": "Invalid request payload",
+		})
+		return
+	}
+	err := con.service.VerseIngestionService().VerseIngestion(ctx, requestBody.StartID, requestBody.EndID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  http.StatusInternalServerError,
