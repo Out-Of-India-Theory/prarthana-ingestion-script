@@ -90,3 +90,70 @@ func (r *PrarthanaESRepository) InsertPrarthanaSearchDocument(doc entity.Prartha
 	}
 	return nil
 }
+
+func (r *PrarthanaESRepository) InsertPoojaSearchDocument(doc entity.PoojaESDocument) error {
+	url := fmt.Sprintf("%s/%s/_doc", r.config.Host, r.config.PoojaIndex)
+	jsonData, err := json.Marshal(doc)
+	if err != nil {
+		return fmt.Errorf("failed to marshal document: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, strings.NewReader(string(jsonData)))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Add("Authorization", r.config.Auth)
+	req.Header.Add("Content-Type", "application/json")
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	_, err = io.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return fmt.Errorf("Elasticsearch returned non-success status: %s", res.Status)
+	}
+	return nil
+}
+
+func (r *PrarthanaESRepository) CleanupPrarthana() error {
+	return r.CleanupIndex(r.config.PrarthanaIndex)
+}
+
+func (r *PrarthanaESRepository) CleanupPooja() error {
+	return r.CleanupIndex(r.config.PoojaIndex)
+}
+
+func (r *PrarthanaESRepository) CleanupIndex(indexName string) error {
+	url := fmt.Sprintf("%s/%s/_delete_by_query", r.config.Host, indexName)
+	client := &http.Client{}
+	query := `{"query": {"match_all": {}}}`
+	req, err := http.NewRequest("POST", url, strings.NewReader(query))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Add("Authorization", r.config.Auth)
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return fmt.Errorf("Elasticsearch returned non-2xx status: %d, body: %s", res.StatusCode, string(body))
+	}
+
+	return nil
+}

@@ -10,7 +10,7 @@
   },
   "MongoConfig": {
     "URI": "config_uri",
-    "Timeout": "5s",
+    "Timeout": "20s",
     "Database": "prarthana_service_stage"
   },
   "ZohoConfig": {
@@ -30,9 +30,15 @@
     "Host": "https://vpc-panchanga-service-o4til57zbor4yogtrvqcjx75l4.ap-south-1.es.amazonaws.com",
     "Auth": "xxxx",
     "DeityIndex": "staging-deity",
-    "PrarthanaIndex": "staging-prarthana"
+    "PrarthanaIndex": "staging-prarthana",
+    "PoojaIndex": "staging-pooja"
   },
-  "OpenAIConfig": {
-    "Key": "xxxx"
+  "AIPlatformClientConfig": {
+    "Address": "xxxx",
+    "Timeout": "20s"
+  },
+  "PromptConfig": {
+    "TranslationPrompt": 14,
+    "TranliterationPrompt": 15
   }
 }
