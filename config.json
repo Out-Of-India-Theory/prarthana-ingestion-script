@@ -33,12 +33,12 @@
     "PrarthanaIndex": "staging-prarthana",
     "PoojaIndex": "staging-pooja"
   },
-  "AIPlatformClientConfig":{
-    "Address":"xxxx",
+  "AIPlatformClientConfig": {
+    "Address": "xxxx",
     "Timeout": "20s"
   },
-  "PromptConfig" :{
-    "TranslationPrompt":14,
-    "TranliterationPrompt":15
+  "PromptConfig": {
+    "TranslationPrompt": 14,
+    "TranliterationPrompt": 15
   }
 }
