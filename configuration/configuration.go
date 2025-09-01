@@ -18,16 +18,18 @@ type Configuration struct {
 	AuthClientConfig       HttpClientConfig
 	UIConfig               UIConfig
 	ESConfig               ESConfig
-	OpenAIConfig           OpenAIConfig
 	AIPlatformClientConfig AIPlatformConfig
+	Prompts                PromptConfig
 }
 
 type AIPlatformConfig struct {
 	Address string
+	Timeout time.Duration
 }
 
-type OpenAIConfig struct {
-	Key string
+type PromptConfig struct {
+	TranslationPrompt     int
+	TransliterationPrompt int
 }
 
 type ESConfig struct {
@@ -82,7 +84,6 @@ func init() {
 		fmt.Printf("error while deserializing config, %v\n", err)
 		panic(err)
 	}
-	_ = v.BindEnv("AIPlatformClientConfig.Address")
 }
 
 func GetConfig() *Configuration {

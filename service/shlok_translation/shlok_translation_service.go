@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/ai_platform"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
@@ -22,16 +23,19 @@ type ShlokTranslationService struct {
 	logger                     *zap.Logger
 	zohoService                zoho.Service
 	aiplatformClientRepository ai_platform.ClientRepository
+	config                     configuration.Configuration
 }
 
 func InitShlokTranslationService(ctx context.Context,
 	zohoService zoho.Service,
 	aiplatformClientRepository ai_platform.ClientRepository,
+	config configuration.Configuration,
 ) *ShlokTranslationService {
 	return &ShlokTranslationService{
 		logger:                     logging.WithContext(ctx),
 		zohoService:                zohoService,
 		aiplatformClientRepository: aiplatformClientRepository,
+		config:                     config,
 	}
 }
 
@@ -82,33 +86,31 @@ func (s *ShlokTranslationService) GenerateShlokaTranslation(ctx context.Context,
 
 			for _, lang := range languages {
 				wg.Add(2)
-				langCopy := lang
-				go func(lang string) {
+				go func(textLang string) {
 					defer wg.Done()
 					textInput := []string{textSanskrit}
-					raw := s.GetTranslation(ctx, textInput, lang, 15)
-					log.Printf("[DEBUG translit] lang=%s, raw=%+v\n", lang, raw)
+					raw := s.GetTranslation(ctx, textInput, textLang, configuration.GetConfig().Prompts.TransliterationPrompt)
 					translated := "[MISSING]"
 					if len(raw) > 0 && strings.TrimSpace(raw[0].Translation) != "" {
 						translated = raw[0].Translation
 					}
 					mu.Lock()
-					texts["text_"+lang] = translated
+					texts["text_"+textLang] = translated
 					mu.Unlock()
-				}(langCopy)
+				}(lang)
 
-				go func(lang string) {
+				go func(textLang string) {
 					defer wg.Done()
 					textInput := []string{textSanskrit}
-					trans := s.GetTranslation(ctx, textInput, lang, 14)
+					trans := s.GetTranslation(ctx, textInput, textLang, configuration.GetConfig().Prompts.TranslationPrompt)
 					translated := "[MISSING]"
 					if len(trans) > 0 && strings.TrimSpace(trans[0].Translation) != "" {
 						translated = trans[0].Translation
 					}
 					mu.Lock()
-					texts["translation_"+lang] = translated
+					texts["translation_"+textLang] = translated
 					mu.Unlock()
-				}(langCopy)
+				}(lang)
 			}
 
 			wg.Wait()

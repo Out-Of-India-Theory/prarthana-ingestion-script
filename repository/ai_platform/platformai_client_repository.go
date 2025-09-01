@@ -3,7 +3,6 @@ package ai_platform
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/Out-Of-India-Theory/oit-go-commons/client/http_client"
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
@@ -22,7 +21,7 @@ type PlatformAIClientRepository struct {
 
 func InitPlatformAIClientRepository(ctx context.Context, config configuration.Configuration) *PlatformAIClientRepository {
 
-	httpClient := http_client.NewHttpClient("", 0, 30*time.Second)
+	httpClient := http_client.NewHttpClient("", 0, config.AIPlatformClientConfig.Timeout)
 	return &PlatformAIClientRepository{
 		logger:       logging.WithContext(ctx),
 		httpClient:   httpClient,
@@ -37,9 +36,9 @@ func (r *PlatformAIClientRepository) BatchTranslateText(ctx context.Context, tex
 	r.logger.Info("Final translation URL", zap.String("url", url))
 
 	requestBody := BatchTranslateRequest{
-		Texts:           texts,
-		TargetLanguage:  lang,
-		PromptId:        &promptId,
+		Texts:          texts,
+		TargetLanguage: lang,
+		PromptId:       &promptId,
 	}
 	header := http.Header{}
 	header.Set("Content-Type", "application/json")
