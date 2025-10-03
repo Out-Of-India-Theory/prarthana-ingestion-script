@@ -5,29 +5,13 @@ import (
 	"errors"
 	"fmt"
 
-	// "strconv"
+	"log"
 
-	// "fmt"
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
 	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
-
-	// "github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
-	// "github.com/go-audio/wav"
-	// "github.com/hajimehoshi/go-mp3"
 	"go.uber.org/zap"
-	// "io"
-	"log"
-	// "math"
-	// "net/http"
-	// "os"
-	// "path/filepath"
-	// "regexp"
-	// "strconv"
-	// "strings"
-	// "sync"
-	// "time"
 )
 
 type VerseIngestionService struct {

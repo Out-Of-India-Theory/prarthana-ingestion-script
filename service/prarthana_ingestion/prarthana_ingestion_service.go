@@ -171,6 +171,8 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 				return nil, fmt.Errorf("variant ID %s not found in variantMap", variantId)
 			}
 		}
+		//adjusting the audion info with the smaller version
+		audioInfo.AudioUrl = variants[0].AudioInfo.AudioUrl
 		prarthana := entity.Prarthana{
 			TmpId: tmpId,
 			Id:    extId,

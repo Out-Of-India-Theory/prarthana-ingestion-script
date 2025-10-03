@@ -24,7 +24,7 @@ const (
 	stotra_collection                = "stotras"
 	pooja_collection                 = "pooja_catalogue"
 	prarthana_collections_collection = "prarthana_collections"
-	verses_collection                = "demo1"
+	verses_collection                = "verses"
 )
 
 type PrarthanaDataMongoRepository struct {
