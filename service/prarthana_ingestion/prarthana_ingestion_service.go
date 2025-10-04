@@ -5,6 +5,13 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"log"
+	"math"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
 	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
@@ -12,12 +19,6 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"log"
-	"math"
-	"os"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 type PrarthanaIngestionService struct {
@@ -198,6 +199,11 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 			AlbumArt:        fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt),
 			DefaultImageUrl: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt),
 			TemplateNumber:  fmt.Sprintf("template_%v", templateNumber),
+			BannerImageUrl:  fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/banner_images/%s.png", albumArt),
+		}
+		if prarthana.Days !=nil {
+			prarthana.UiInfo.BannerImageUrl = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/banner_images/%s.png", strings.Split(strings.ToLower(nameDefault)," ")[0])
+			s.logger.Info("Banner Image URL set based on day", zap.String("url", nameDefault))
 		}
 
 		prarthana.AvailableLanguages = []entity.KeyValue{
