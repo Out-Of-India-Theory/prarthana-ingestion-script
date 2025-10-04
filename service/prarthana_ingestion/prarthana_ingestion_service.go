@@ -215,6 +215,8 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 			{"assamese", "অসমীয়া"},
 			{"punjabi", "ਪੰਜਾਬੀ"},
 		}
+		prarthana.AudioInfo.AudioUrl = variants[0].AudioInfo.AudioUrl
+
 		prarthanas = append(prarthanas, prarthana)
 		prarthanaIdMap[tmpId] = prarthana.Id
 	}
