@@ -53,6 +53,8 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		log.Fatalf("Failed to prepare chapter map: %v", err)
 	}
 
+	pdMap, _, err := s.preparePrarthanaToDeityMap(ctx)
+
 	var response entity.ShlokaSheetResponse
 	err = s.zohoService.GetSheetData(ctx, "prarthanas", &response)
 	if err != nil {
@@ -172,6 +174,10 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 				return nil, fmt.Errorf("variant ID %s not found in variantMap", variantId)
 			}
 		}
+		deityId, err := s.prarthanaMongoRepository.GetDeityById(ctx, pdMap[tmpId])
+		if err!=nil{
+			return nil, fmt.Errorf("error fetching deity id by TmpId : %s", tmpId)
+		}
 		prarthana := entity.Prarthana{
 			TmpId: tmpId,
 			Id:    extId,
@@ -184,6 +190,7 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 				"te":      nameTelugu,
 				"gu":      nameGujarati,
 			},
+			DeityIds:      []string{deityId.Id},
 			FestivalIds:   festivalIds,
 			Days:          util.GetDaysFromTitle(nameDefault),
 			AudioInfo:     audioInfo,
@@ -201,8 +208,8 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 			TemplateNumber:  fmt.Sprintf("template_%v", templateNumber),
 			BannerImageUrl:  fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/banner_images/%s.png", albumArt),
 		}
-		if prarthana.Days !=nil {
-			prarthana.UiInfo.BannerImageUrl = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/banner_images/%s.png", strings.Split(strings.ToLower(nameDefault)," ")[0])
+		if prarthana.Days != nil {
+			prarthana.UiInfo.BannerImageUrl = fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/banner_images/%s.png", strings.Split(strings.ToLower(nameDefault), " ")[0])
 			s.logger.Info("Banner Image URL set based on day", zap.String("url", nameDefault))
 		}
 
@@ -399,4 +406,47 @@ func PreparePrarthanaToDeityMap(csvFilePath string) (map[string]string, map[stri
 		dpMap[record[fieldMap["Diety ID"]]] = append(dpMap[record[fieldMap["Diety ID"]]], record[fieldMap["Prarthana ID"]])
 	}
 	return pdmap, dpMap
+}
+
+func (s *PrarthanaIngestionService) preparePrarthanaToDeityMap(ctx context.Context) (map[string]string, map[string][]string, error) {
+	var response entity.ShlokaSheetResponse
+	err := s.zohoService.GetSheetData(ctx, "deity to prarthana mapping", &response)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(response.Records) == 0 {
+		return nil, nil, errors.New("no records found")
+	}
+	pdmap := make(map[string]string)
+	dpMap := make(map[string][]string)
+	for i, record := range response.Records {
+		var prarthanaIds []string
+
+		switch v := record["Prarthana ID"].(type) {
+		case float64:
+			prarthanaIds = []string{strconv.FormatFloat(v, 'f', -1, 64)}
+		case string:
+			if v == "" {
+				return nil, nil, fmt.Errorf("row %d: prarthana ID is empty string", i+2) // +2 to match sheet row (1-indexed + header)
+			}
+			prarthanaIds = util.GetSplittedString(v)
+		default:
+			return nil, nil, fmt.Errorf("row %d: invalid prarthana ID type", i+2)
+		}
+
+		deityIdString := fmt.Sprintf("%v", record["Diety ID"])
+		if len(deityIdString) == 0 {
+			// Skip mapping if deity ID is empty
+			continue
+		}
+		deityIds := util.GetSplittedString(deityIdString)
+
+		for _, prarthanaId := range prarthanaIds {
+			for _, deityId := range deityIds {
+				pdmap[prarthanaId] = deityId
+				dpMap[deityId] = append(dpMap[deityId], prarthanaId)
+			}
+		}
+	}
+	return pdmap, dpMap, nil
 }
