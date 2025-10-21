@@ -5,6 +5,13 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"log"
+	"math"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
 	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
@@ -12,12 +19,6 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"log"
-	"math"
-	"os"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 type PrarthanaIngestionService struct {
@@ -49,7 +50,7 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 
 	variantMap, err := s.prepareVariantMap(ctx, chapterMap)
 	if err != nil {
-		log.Fatalf("Failed to prepare chapter map: %v", err)
+		log.Fatalf("Failed to prepare varaint map: %v", err)
 	}
 
 	var response entity.ShlokaSheetResponse
@@ -317,8 +318,7 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 		}
 		minutes := int(math.Max(1, math.Round((float64(duration) / float64(60)))))
 		durationStr := fmt.Sprintf("%dm", minutes)
-		nameDefault, ok := record["Variant Name"].(string)
-		audioName := strings.ToLower(util.SanitizeString(nameDefault))
+		audioFilename, ok := record["Audio Url Filename"].(string)
 		studioRecorded := false
 		studioRecordedStr, ok := record["Studio Recorded"].(string)
 		if ok && studioRecordedStr == "TRUE" {
@@ -331,8 +331,8 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 		}
 		var audioInfo entity.AudioInfo
 		if audioAvailable {
-			audioURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.wav", audioName)
-			audioURLMp3 := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.mp3", audioName)
+			audioURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.wav", audioFilename)
+			audioURLMp3 := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.mp3", audioFilename)
 			if !util.UrlExists(audioURL) {
 				if !util.UrlExists(audioURLMp3) {
 					return nil, fmt.Errorf("audio URL does not exist: %s", audioURL)
@@ -345,11 +345,18 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 				IsStudioRecorded: studioRecorded,
 			}
 		}
+		var langs = []string{"default", "kn", "hi", "ta", "te", "mr"}
+		variantName := make(map[string]string)
+		for _, lang := range langs {
+			langVarName, _ := record[fmt.Sprintf("Display variant name(%s)", lang)].(string)
+			variantName[lang] = langVarName
+		}
 		variant := entity.Variant{
-			Duration:  durationStr,
-			Chapters:  chapters,
-			IsDefault: true,
-			AudioInfo: audioInfo,
+			Duration:     durationStr,
+			Chapters:     chapters,
+			IsDefault:    true,
+			AudioInfo:    audioInfo,
+			VariantTitle: variantName,
 		}
 		id, ok := record["ID"].(float64)
 		if !ok {
