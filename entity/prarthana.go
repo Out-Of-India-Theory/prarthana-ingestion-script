@@ -16,6 +16,7 @@ type Variant struct {
 	Chapters  []Chapter `bson:"chapters" json:"chapters"`
 	IsDefault bool      `bson:"is_default" json:"is_default"`
 	AudioInfo AudioInfo `bson:"audio_info" json:"audio_info"`
+	VariantTitle map[string]string `bson:"variant_title" json:"variant_title"`
 }
 
 type Prarthana struct {
