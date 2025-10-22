@@ -175,8 +175,8 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 			}
 		}
 		deityId, err := s.prarthanaMongoRepository.GetDeityById(ctx, pdMap[tmpId])
-		if err!=nil{
-			return nil, fmt.Errorf("error fetching deity id by TmpId : %s", tmpId)
+		if err != nil {
+			s.logger.Info("error fetching deity by TmpId")
 		}
 		prarthana := entity.Prarthana{
 			TmpId: tmpId,
