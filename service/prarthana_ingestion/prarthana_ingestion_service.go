@@ -103,8 +103,9 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		}
 
 		albumArt, ok := record["Album Art File Name"].(string)
-		if !ok {
-			return nil, errors.New("Missing prarthana album art")
+		if strings.TrimSpace(albumArt) == "" {
+			s.logger.Info("missing prarthana album art")
+			continue
 		}
 		audioName := strings.ToLower(util.SanitizeString(nameDefault))
 		studioRecorded := false
@@ -133,7 +134,6 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 				IsStudioRecorded: studioRecorded,
 			}
 		}
-
 		albumArtURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt)
 		if !util.UrlExists(albumArtURL) {
 			return nil, fmt.Errorf("album art URL does not exist: %s", albumArtURL)
@@ -353,7 +353,10 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 		var langs = []string{"default", "kn", "hi", "ta", "te", "mr", "gu"}
 		variantName := make(map[string]string)
 		for _, lang := range langs {
-			langVarName, _ := record[fmt.Sprintf("Display variant name(%s)", lang)].(string)
+			langVarName, ok := record[fmt.Sprintf("Display variant name(%s)", lang)].(string)
+			if strings.TrimSpace(langVarName) == "" || !ok {
+				return nil, errors.New("error fetching display variant name")
+			}
 			variantName[lang] = langVarName
 		}
 		variant := entity.Variant{
