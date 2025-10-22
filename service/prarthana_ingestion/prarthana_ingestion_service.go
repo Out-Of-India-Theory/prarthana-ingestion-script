@@ -95,10 +95,10 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		tmpId := strconv.Itoa(id)
 
 		extId, ok := record["UUID"].(string)
-		if !ok {
+		if strings.TrimSpace(extId) == "" {
 			generateUuid := uuid.NewString()
 			extId = generateUuid
-			err := s.zohoService.AddUUIDToSheet(ctx, "deities", extId, i+2)
+			err := s.zohoService.AddUUIDToSheet(ctx, "prarthanas", extId, i+2)
 			if err != nil {
 				return nil, fmt.Errorf("failed to update UUID to sheet for row %d: %w", i+2, err)
 			}
@@ -167,8 +167,13 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		variantIds := util.GetSplittedString(variantIdsStr)
 		variants := make([]entity.Variant, 0)
 
-		for _, variantId := range variantIds {
+		for i, variantId := range variantIds {
 			if variant, exists := variantMap[variantId]; exists {
+				if i == 0 {
+					variant.IsDefault = true
+				} else {
+					variant.IsDefault = false
+				}
 				variants = append(variants, variant)
 			} else {
 				return nil, fmt.Errorf("variant ID %s not found in variantMap", variantId)
@@ -359,7 +364,7 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 				IsStudioRecorded: studioRecorded,
 			}
 		}
-		var langs = []string{"default", "kn", "hi", "ta", "te", "mr"}
+		var langs = []string{"default", "kn", "hi", "ta", "te", "mr", "gu"}
 		variantName := make(map[string]string)
 		for _, lang := range langs {
 			langVarName, _ := record[fmt.Sprintf("Display variant name(%s)", lang)].(string)
@@ -368,7 +373,7 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 		variant := entity.Variant{
 			Duration:     durationStr,
 			Chapters:     chapters,
-			IsDefault:    true,
+			IsDefault:    false,
 			AudioInfo:    audioInfo,
 			VariantTitle: variantName,
 		}
