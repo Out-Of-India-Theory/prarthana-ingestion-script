@@ -179,9 +179,21 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 				return nil, fmt.Errorf("variant ID %s not found in variantMap", variantId)
 			}
 		}
+<<<<<<< HEAD
 		deityId, err := s.prarthanaMongoRepository.GetDeityById(ctx, pdMap[tmpId])
 		if err != nil {
 			s.logger.Info("error fetching deity by TmpId")
+=======
+		deityDocument, err := s.prarthanaMongoRepository.GetDeityById(ctx, pdMap[tmpId])
+		if err != nil {
+			s.logger.Info("error fetching deity by tmpid")
+		}
+		var deityIds []string
+		if deityDocument != nil {
+			deityIds = []string{deityDocument.Id}
+		} else {
+			deityIds = []string{}
+>>>>>>> variant-update
 		}
 		prarthana := entity.Prarthana{
 			TmpId: tmpId,
@@ -195,7 +207,7 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 				"te":      nameTelugu,
 				"gu":      nameGujarati,
 			},
-			DeityIds:      []string{deityId.Id},
+			DeityIds:      deityIds,
 			FestivalIds:   festivalIds,
 			Days:          util.GetDaysFromTitle(nameDefault),
 			AudioInfo:     audioInfo,
