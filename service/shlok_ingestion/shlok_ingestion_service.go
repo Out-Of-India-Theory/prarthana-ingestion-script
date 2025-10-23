@@ -99,5 +99,6 @@ func (s *ShlokIngestionService) ShlokIngestion(ctx context.Context, startID, end
 	if len(shloks) == 0 {
 		return errors.New("no shloks to ingest")
 	}
+
 	return s.prarthanaMongoRepository.InsertManyShloks(ctx, shloks)
 }
