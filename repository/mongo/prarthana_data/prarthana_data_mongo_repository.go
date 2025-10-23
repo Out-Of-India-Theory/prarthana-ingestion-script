@@ -19,8 +19,8 @@ import (
 
 const (
 	prarthana_collection             = "prarthanas"
-	deity_collection                 = "deities_demo"
-	shlok_collection                 = "shloks_demo"
+	deity_collection                 = "deities"
+	shlok_collection                 = "shloks"
 	stotra_collection                = "stotras"
 	pooja_collection                 = "pooja_catalogue"
 	prarthana_collections_collection = "prarthana_collections"
