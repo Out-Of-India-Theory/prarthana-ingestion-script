@@ -50,7 +50,7 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 
 	variantMap, err := s.prepareVariantMap(ctx, chapterMap)
 	if err != nil {
-		log.Fatalf("Failed to prepare chapter map: %v", err)
+		log.Fatalf("Failed to prepare varaint map: %v", err)
 	}
 
 	pdMap, _, err := s.preparePrarthanaToDeityMap(ctx)
@@ -95,18 +95,19 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		tmpId := strconv.Itoa(id)
 
 		extId, ok := record["UUID"].(string)
-		if !ok {
+		if strings.TrimSpace(extId) == "" {
 			generateUuid := uuid.NewString()
 			extId = generateUuid
-			err := s.zohoService.AddUUIDToSheet(ctx, "deities", extId, i+2)
+			err := s.zohoService.AddUUIDToSheet(ctx, "prarthanas", extId, i+2)
 			if err != nil {
 				return nil, fmt.Errorf("failed to update UUID to sheet for row %d: %w", i+2, err)
 			}
 		}
 
 		albumArt, ok := record["Album Art File Name"].(string)
-		if !ok {
-			return nil, errors.New("Missing prarthana album art")
+		if strings.TrimSpace(albumArt) == "" {
+			s.logger.Info("missing prarthana album art")
+			continue
 		}
 		audioName := strings.ToLower(util.SanitizeString(nameDefault))
 		studioRecorded := false
@@ -135,7 +136,6 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 				IsStudioRecorded: studioRecorded,
 			}
 		}
-
 		albumArtURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/album_art/%s.png", albumArt)
 		if !util.UrlExists(albumArtURL) {
 			return nil, fmt.Errorf("album art URL does not exist: %s", albumArtURL)
@@ -167,8 +167,13 @@ func (s *PrarthanaIngestionService) PrarthanaIngestion(ctx context.Context, star
 		variantIds := util.GetSplittedString(variantIdsStr)
 		variants := make([]entity.Variant, 0)
 
-		for _, variantId := range variantIds {
+		for i, variantId := range variantIds {
 			if variant, exists := variantMap[variantId]; exists {
+				if i == 0 {
+					variant.IsDefault = true
+				} else {
+					variant.IsDefault = false
+				}
 				variants = append(variants, variant)
 			} else {
 				return nil, fmt.Errorf("variant ID %s not found in variantMap", variantId)
@@ -332,8 +337,7 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 		}
 		minutes := int(math.Max(1, math.Round((float64(duration) / float64(60)))))
 		durationStr := fmt.Sprintf("%dm", minutes)
-		nameDefault, ok := record["Variant Name"].(string)
-		audioName := strings.ToLower(util.SanitizeString(nameDefault))
+		audioFilename, ok := record["Audio Url Filename"].(string)
 		studioRecorded := false
 		studioRecordedStr, ok := record["Studio Recorded"].(string)
 		if ok && studioRecordedStr == "TRUE" {
@@ -346,8 +350,8 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 		}
 		var audioInfo entity.AudioInfo
 		if audioAvailable {
-			audioURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.wav", audioName)
-			audioURLMp3 := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.mp3", audioName)
+			audioURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.wav", audioFilename)
+			audioURLMp3 := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/audio/stitched_audio/%s.mp3", audioFilename)
 			if !util.UrlExists(audioURL) {
 				if !util.UrlExists(audioURLMp3) {
 					return nil, fmt.Errorf("audio URL does not exist: %s", audioURL)
@@ -360,11 +364,21 @@ func (s *PrarthanaIngestionService) prepareVariantMap(ctx context.Context, chapt
 				IsStudioRecorded: studioRecorded,
 			}
 		}
+		var langs = []string{"default", "kn", "hi", "ta", "te", "mr", "gu"}
+		variantName := make(map[string]string)
+		for _, lang := range langs {
+			langVarName, ok := record[fmt.Sprintf("Display variant name(%s)", lang)].(string)
+			if strings.TrimSpace(langVarName) == "" || !ok {
+				return nil, errors.New("error fetching display variant name")
+			}
+			variantName[lang] = langVarName
+		}
 		variant := entity.Variant{
-			Duration:  durationStr,
-			Chapters:  chapters,
-			IsDefault: true,
-			AudioInfo: audioInfo,
+			Duration:     durationStr,
+			Chapters:     chapters,
+			IsDefault:    false,
+			AudioInfo:    audioInfo,
+			VariantTitle: variantName,
 		}
 		id, ok := record["ID"].(float64)
 		if !ok {
