@@ -31,9 +31,12 @@ type DeityUIInfo struct {
 }
 
 type HeroImageAlbum struct {
-	FullImage      string `json:"full_image" bson:"full_image"`
-	ThumbnailImage string `json:"thumbnail_image" bson:"thumbnail_image"`
-	ShareImage     string `json:"share_image" bson:"share_image"`
+	Id                      string `json:"id" bson:"_id"`
+	WallpaperFullImage      string `json:"wallpaper_full_image" bson:"wallpaper_full_image"`
+	WallpaperThumbnailImage string `json:"wallpaper_thumbnail_image" bson:"wallpaper_thumbnail_image"`
+	ThumbnailImage          string `json:"thumbnail_image" bson:"thumbnail_image"`
+	FullImage               string `json:"full_image" bson:"full_image"`
+	ShareImage              string `json:"share_image" bson:"share_image"`
 }
 
 type DeitySearchData struct {
