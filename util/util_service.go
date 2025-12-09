@@ -75,3 +75,12 @@ func SanitizeString(input string) string {
 
 	return cleaned
 }
+
+func GetLanguageOrDefaultText(data map[string]string, lang string) string {
+	if text, found := data[lang]; found {
+		return text
+	} else if defaultText, ok := data["default"]; ok {
+		return defaultText
+	}
+	return ""
+}

@@ -501,6 +501,12 @@ func (r *PrarthanaDataMongoRepository) ListPooja(ctx context.Context) []entity.P
 			{"foreignField", "_id"},
 			{"as", "deities"},
 		}}},
+		{{"$lookup", bson.D{
+			{"from", "pooja_collections"},
+			{"localField", "_id"},
+			{"foreignField", "pooja_ids"},
+			{"as", "collections"},
+		}}},
 	}
 
 	cursor, err := r.poojaCollection.Aggregate(ctx, pipeline)

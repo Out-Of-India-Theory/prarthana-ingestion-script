@@ -3,13 +3,15 @@ package search_ingestion
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/es/prarthana"
 	mongoRepo "github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/mongo/prarthana_data"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/util"
 	"go.uber.org/zap"
-	"strconv"
-	"time"
 )
 
 const DurationInMin = "%.0f min"
@@ -131,13 +133,18 @@ func (s *SearchIngestionService) IngestPoojaSearch(ctx context.Context) error {
 				deities = append(deities, deity.Title[language])
 			}
 			price, _ := strconv.Atoi(doc.Price)
+			collectionNames := []string{}
+			for _, collection := range doc.Collections {
+				collectionNames = append(collectionNames, util.GetLanguageOrDefaultText(collection.Title, language))
+			}
 			esDoc := entity.PoojaESDocument{
-				ID:           doc.ID,
-				Title:        doc.Title[language],
-				Key:          doc.Key,
-				ThumbnailUrl: doc.ThumbnailUrl,
-				DeityNames:   deities,
-				Price:        price,
+				ID:             doc.ID,
+				Title:          doc.Title[language],
+				Key:            doc.Key,
+				ThumbnailUrl:   doc.ThumbnailUrl,
+				DeityNames:     deities,
+				Price:          price,
+				SearchKeywords: collectionNames,
 			}
 			if err := s.prarthanaESRepository.InsertPoojaSearchDocument(esDoc); err != nil {
 				return fmt.Errorf("failed to index prarthana document for ID '%s', lang '%s': %w", doc.ID, language, err)
