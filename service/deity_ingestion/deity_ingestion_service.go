@@ -129,16 +129,31 @@ func (s *DeityIngestionService) DeityIngestion(ctx context.Context, startID, end
 		heroImageCount, ok := record["Hero Image Count"].(float64)
 		startCount, ok := record["Start Count"].(float64)
 		if ok && heroImageCount > 0 {
+			existingHeroImages := make(map[string]entity.HeroImageAlbum)
+			if existing, found := existingDeitiesMap[tmpId]; found {
+				for _, heroalbum := range existing.UIInfo.HeroImageAlbum {
+					existingHeroImages[heroalbum.FullImage] = heroalbum
+				}
+			}
+
 			for i := 0; i < int(heroImageCount); i++ { // Convert float64 to int directly
 				imageIndex := ""
 				if i >= 0 {
 					imageIndex = strconv.Itoa(int(startCount) + i)
 				}
-				heroImageAlbum = append(heroImageAlbum, entity.HeroImageAlbum{
-					FullImage:      fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex),
-					ThumbnailImage: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex),
-					ShareImage:     fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/share_image/%s%s.png", formattedtitle, imageIndex),
-				})
+				fullImageURL := fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex)
+				if existingImg, exists := existingHeroImages[fullImageURL]; exists {
+					heroImageAlbum = append(heroImageAlbum, existingImg)
+				} else {
+					heroImageAlbum = append(heroImageAlbum, entity.HeroImageAlbum{
+						Id:                      uuid.NewString(),
+						FullImage:               fullImageURL,
+						ThumbnailImage:          fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex),
+						ShareImage:              fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/share_image/%s%s.png", formattedtitle, imageIndex),
+						WallpaperFullImage:      fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex),
+						WallpaperThumbnailImage: fmt.Sprintf("https://d161fa2zahtt3z.cloudfront.net/prarthanas/deities/hero_image_album/full_image/%s%s.png", formattedtitle, imageIndex),
+					})
+				}
 			}
 		}
 
