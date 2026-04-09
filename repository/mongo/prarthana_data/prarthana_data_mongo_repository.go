@@ -528,3 +528,32 @@ func (r *PrarthanaDataMongoRepository) ListPooja(ctx context.Context) []entity.P
 	}
 	return poojas
 }
+
+func (r *PrarthanaDataMongoRepository) GetDeityById(ctx context.Context, tmpId string) (*entity.DeityDocument, error) {
+	matchStage := bson.D{{Key: "$match", Value: bson.M{"TmpId": tmpId}}}
+	lookupStage := bson.D{{Key: "$lookup", Value: bson.D{
+		{Key: "from", Value: "prarthanas"},
+		{Key: "localField", Value: "prarthanas"},
+		{Key: "foreignField", Value: "tmpId"},
+		{Key: "as", Value: "prarthana_docs"},
+	}}}
+
+	pipeline := mongo.Pipeline{matchStage, lookupStage}
+
+	cursor, err := r.deityCollection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("error while fetching deity from mongo: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var doc entity.DeityDocument
+	if cursor.Next(ctx) {
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, fmt.Errorf("error decoding deity doc with TmpId %v: %w", tmpId, err)
+		}
+	} else {
+		return nil, fmt.Errorf("no deity found with TmpId %v", tmpId)
+	}
+
+	return &doc, nil
+}

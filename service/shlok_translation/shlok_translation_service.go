@@ -10,8 +10,9 @@ import (
 	"time"
 
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/entity"
-	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/openai"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/repository/ai_platform"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
 	"go.uber.org/zap"
 )
@@ -19,27 +20,30 @@ import (
 const maxWorkers = 5
 
 type ShlokTranslationService struct {
-	logger                 *zap.Logger
-	zohoService            zoho.Service
-	openaiClientRepository openai.ClientRepository
+	logger                     *zap.Logger
+	zohoService                zoho.Service
+	aiplatformClientRepository ai_platform.ClientRepository
+	config                     configuration.Configuration
 }
 
 func InitShlokTranslationService(ctx context.Context,
 	zohoService zoho.Service,
-	openaiClientRepository openai.ClientRepository,
+	aiplatformClientRepository ai_platform.ClientRepository,
+	config configuration.Configuration,
 ) *ShlokTranslationService {
 	return &ShlokTranslationService{
-		logger:                 logging.WithContext(ctx),
-		zohoService:            zohoService,
-		openaiClientRepository: openaiClientRepository,
+		logger:                     logging.WithContext(ctx),
+		zohoService:                zohoService,
+		aiplatformClientRepository: aiplatformClientRepository,
+		config:                     config,
 	}
 }
 
-func (s *ShlokTranslationService) GetTranslation(text, lang string, isTranslation bool) string {
-	translatedText, err := s.openaiClientRepository.TranslateText(text, lang, isTranslation)
+func (s *ShlokTranslationService) GetTranslation(ctx context.Context, text []string, lang string, promptId int) []ai_platform.TranslateText {
+	translatedText, err := s.aiplatformClientRepository.BatchTranslateText(ctx, text, lang, promptId)
 	if err != nil {
 		log.Printf("Error translating to %s: %v", lang, err)
-		return text
+		return nil
 	}
 	return translatedText
 }
@@ -73,48 +77,57 @@ func (s *ShlokTranslationService) GenerateShlokaTranslation(ctx context.Context,
 				log.Printf("invalid text_sanskrit at row %d", i+1)
 				continue
 			}
-			newRecord := []interface{}{}
-			newRecord = append(newRecord, record["ID"], record["Name (Optional)"], textSanskrit)
+
+			newRecord := []interface{}{record["ID"], record["Name (Optional)"], textSanskrit}
+
 			var wg sync.WaitGroup
 			mu := sync.Mutex{}
 			texts := make(map[string]string)
+
 			for _, lang := range languages {
 				wg.Add(2)
-				go func(lang string) {
+				go func(textLang string) {
 					defer wg.Done()
-					text := s.GetTranslation(textSanskrit, lang, false)
-					if strings.TrimSpace(text) == "" {
-						text = "[MISSING]"
+					textInput := []string{textSanskrit}
+					raw := s.GetTranslation(ctx, textInput, textLang, configuration.GetConfig().Prompts.TransliterationPrompt)
+					translated := "[MISSING]"
+					if len(raw) > 0 && strings.TrimSpace(raw[0].Translation) != "" {
+						translated = raw[0].Translation
 					}
 					mu.Lock()
-					texts["text_"+lang] = text
+					texts["text_"+textLang] = translated
 					mu.Unlock()
 				}(lang)
 
-				go func(lang string) {
+				go func(textLang string) {
 					defer wg.Done()
-					trans := s.GetTranslation(textSanskrit, lang, true)
-					if strings.TrimSpace(trans) == "" {
-						trans = "[MISSING]"
+					textInput := []string{textSanskrit}
+					trans := s.GetTranslation(ctx, textInput, textLang, configuration.GetConfig().Prompts.TranslationPrompt)
+					translated := "[MISSING]"
+					if len(trans) > 0 && strings.TrimSpace(trans[0].Translation) != "" {
+						translated = trans[0].Translation
 					}
 					mu.Lock()
-					texts["translation_"+lang] = trans
+					texts["translation_"+textLang] = translated
 					mu.Unlock()
 				}(lang)
 			}
+
 			wg.Wait()
+
 			for _, lang := range languages {
 				newRecord = append(newRecord, texts["text_"+lang], texts["translation_"+lang])
 			}
+
 			columnIndexes := make([]int, len(newRecord))
 			for j := range newRecord {
 				columnIndexes[j] = j + 1
 			}
+
 			err := s.zohoService.SetSheetData(ctx, "shloka", i+2, columnIndexes, newRecord)
 			if err != nil {
 				return fmt.Errorf("failed to write row %d: %w", i+1, err)
 			}
-			//log.Printf("✅ Successfully wrote row ID %d", i+1)
 			time.Sleep(500 * time.Millisecond)
 		}
 	}

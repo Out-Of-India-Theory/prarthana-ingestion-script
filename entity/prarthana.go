@@ -16,6 +16,7 @@ type Variant struct {
 	Chapters  []Chapter `bson:"chapters" json:"chapters"`
 	IsDefault bool      `bson:"is_default" json:"is_default"`
 	AudioInfo AudioInfo `bson:"audio_info" json:"audio_info"`
+	VariantTitle map[string]string `bson:"variant_title" json:"variant_title"`
 }
 
 type Prarthana struct {
@@ -52,7 +53,8 @@ type KeyValue struct {
 type PrarthanaUIInfo struct {
 	AlbumArt        string `json:"album_art" bson:"album_art"`
 	DefaultImageUrl string `json:"default_image_url" bson:"default_image_url"`
-	TemplateNumber  string `json:"template_number"`
+	TemplateNumber  string `json:"template_number" bson:"template_number"`
+	BannerImageUrl  string `json:"banner_image_url" bson:"banner_image_url"`
 }
 
 type PrarthanaSearchData struct {
