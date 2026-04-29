@@ -7,7 +7,9 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_translation"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/stotra_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/sync"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho_sync"
 )
 
 type Service interface {
@@ -18,4 +20,6 @@ type Service interface {
 	ZohoAuthService() zoho.Service
 	SearchIngestionService() search_ingestion.Service
 	ShlokTranslationService() shlok_translation.Service
+	SyncService() sync.Service
+	ZohoSyncService() zoho_sync.Service
 }

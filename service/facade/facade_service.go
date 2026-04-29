@@ -10,7 +10,9 @@ import (
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_ingestion"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/shlok_translation"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/stotra_ingestion"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/sync"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho"
+	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/service/zoho_sync"
 	"go.uber.org/zap"
 )
 
@@ -24,6 +26,8 @@ type FacadeService struct {
 	zohoAuthService           zoho.Service
 	searchIngestionService    search_ingestion.Service
 	shlokTranslationService   shlok_translation.Service
+	syncService               sync.Service
+	zohoSyncService           zoho_sync.Service
 }
 
 func InitFacadeService(
@@ -36,6 +40,8 @@ func InitFacadeService(
 	zohoAuthService zoho.Service,
 	searchIngestionService search_ingestion.Service,
 	shlokTranslationService shlok_translation.Service,
+	syncService sync.Service,
+	zohoSyncService zoho_sync.Service,
 ) *FacadeService {
 	return &FacadeService{
 		logger:                    logging.WithContext(ctx),
@@ -47,6 +53,8 @@ func InitFacadeService(
 		zohoAuthService:           zohoAuthService,
 		searchIngestionService:    searchIngestionService,
 		shlokTranslationService:   shlokTranslationService,
+		syncService:               syncService,
+		zohoSyncService:           zohoSyncService,
 	}
 }
 
@@ -76,4 +84,12 @@ func (s *FacadeService) SearchIngestionService() search_ingestion.Service {
 
 func (s *FacadeService) ShlokTranslationService() shlok_translation.Service {
 	return s.shlokTranslationService
+}
+
+func (s *FacadeService) SyncService() sync.Service {
+	return s.syncService
+}
+
+func (s *FacadeService) ZohoSyncService() zoho_sync.Service {
+	return s.zohoSyncService
 }
