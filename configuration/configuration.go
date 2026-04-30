@@ -14,6 +14,7 @@ var configuration *Configuration
 type Configuration struct {
 	ServerConfig           config.AppConfig
 	MongoConfig            config.MongoConfig
+	ProdMongoConfig        config.MongoConfig
 	ZohoConfig             ZohoConfig
 	AuthClientConfig       HttpClientConfig
 	UIConfig               UIConfig

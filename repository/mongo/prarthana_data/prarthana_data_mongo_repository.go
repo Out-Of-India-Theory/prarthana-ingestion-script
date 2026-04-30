@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
+	commonsConfig "github.com/Out-Of-India-Theory/oit-go-commons/config"
 	"github.com/Out-Of-India-Theory/oit-go-commons/logging"
 	mongoCommons "github.com/Out-Of-India-Theory/oit-go-commons/mongo"
 	"github.com/Out-Of-India-Theory/prarthana-ingestion-script/configuration"
@@ -37,15 +39,19 @@ type PrarthanaDataMongoRepository struct {
 }
 
 func InitPrarthanaDataMongoRepository(ctx context.Context, config configuration.Configuration) *PrarthanaDataMongoRepository {
-	mongoClient := mongoCommons.InitMongoClient(ctx, config.MongoConfig)
+	return InitPrarthanaDataMongoRepositoryWithConfig(ctx, config.MongoConfig)
+}
+
+func InitPrarthanaDataMongoRepositoryWithConfig(ctx context.Context, mongoConfig commonsConfig.MongoConfig) *PrarthanaDataMongoRepository {
+	mongoClient := mongoCommons.InitMongoClient(ctx, mongoConfig)
 	return &PrarthanaDataMongoRepository{
 		logger:                         logging.WithContext(ctx),
-		prarthanaCollection:            mongoClient.Database(config.MongoConfig.Database).Collection(prarthana_collection),
-		deityCollection:                mongoClient.Database(config.MongoConfig.Database).Collection(deity_collection),
-		shlokCollection:                mongoClient.Database(config.MongoConfig.Database).Collection(shlok_collection),
-		stotraCollection:               mongoClient.Database(config.MongoConfig.Database).Collection(stotra_collection),
-		poojaCollection:                mongoClient.Database(config.MongoConfig.Database).Collection(pooja_collection),
-		prarthanaCollectionsCollection: mongoClient.Database(config.MongoConfig.Database).Collection(prarthana_collections_collection),
+		prarthanaCollection:            mongoClient.Database(mongoConfig.Database).Collection(prarthana_collection),
+		deityCollection:                mongoClient.Database(mongoConfig.Database).Collection(deity_collection),
+		shlokCollection:                mongoClient.Database(mongoConfig.Database).Collection(shlok_collection),
+		stotraCollection:               mongoClient.Database(mongoConfig.Database).Collection(stotra_collection),
+		poojaCollection:                mongoClient.Database(mongoConfig.Database).Collection(pooja_collection),
+		prarthanaCollectionsCollection: mongoClient.Database(mongoConfig.Database).Collection(prarthana_collections_collection),
 	}
 }
 
@@ -501,6 +507,12 @@ func (r *PrarthanaDataMongoRepository) ListPooja(ctx context.Context) []entity.P
 			{"foreignField", "_id"},
 			{"as", "deities"},
 		}}},
+		{{"$lookup", bson.D{
+			{"from", "pooja_collections"},
+			{"localField", "_id"},
+			{"foreignField", "pooja_ids"},
+			{"as", "collections"},
+		}}},
 	}
 
 	cursor, err := r.poojaCollection.Aggregate(ctx, pipeline)
@@ -550,4 +562,66 @@ func (r *PrarthanaDataMongoRepository) GetDeityById(ctx context.Context, tmpId s
 	}
 
 	return &doc, nil
+}
+
+func (r *PrarthanaDataMongoRepository) FindPrarthanaById(ctx context.Context, id string) (*entity.Prarthana, error) {
+	var doc entity.Prarthana
+	if err := r.prarthanaCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&doc); err != nil {
+		return nil, fmt.Errorf("error fetching prarthana by id %s: %w", id, err)
+	}
+	return &doc, nil
+}
+
+func (r *PrarthanaDataMongoRepository) GetPrarthanasByTmpIdRange(ctx context.Context, startID, endID int) ([]entity.Prarthana, error) {
+	cursor, err := r.prarthanaCollection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("error fetching prarthanas: %w", err)
+	}
+	defer cursor.Close(ctx)
+	var prarthanas []entity.Prarthana
+	for cursor.Next(ctx) {
+		var p entity.Prarthana
+		if err := cursor.Decode(&p); err != nil {
+			return nil, fmt.Errorf("error decoding prarthana: %w", err)
+		}
+		tmpInt, err := strconv.Atoi(p.TmpId)
+		if err != nil {
+			continue
+		}
+		if tmpInt >= startID && tmpInt <= endID {
+			prarthanas = append(prarthanas, p)
+		}
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+	return prarthanas, nil
+}
+
+func (r *PrarthanaDataMongoRepository) GetStotrasByIntIdRange(ctx context.Context, startID, endID int) ([]entity.Stotra, error) {
+	filter := bson.M{"int_id": bson.M{"$gte": startID, "$lte": endID}}
+	cursor, err := r.stotraCollection.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching stotras in range: %w", err)
+	}
+	defer cursor.Close(ctx)
+	var stotras []entity.Stotra
+	if err := cursor.All(ctx, &stotras); err != nil {
+		return nil, fmt.Errorf("error decoding stotras: %w", err)
+	}
+	return stotras, nil
+}
+
+func (r *PrarthanaDataMongoRepository) GetShloksByIntIdRange(ctx context.Context, startID, endID int) ([]entity.Shlok, error) {
+	filter := bson.M{"int_id": bson.M{"$gte": startID, "$lte": endID}}
+	cursor, err := r.shlokCollection.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching shloks in range: %w", err)
+	}
+	defer cursor.Close(ctx)
+	var shloks []entity.Shlok
+	if err := cursor.All(ctx, &shloks); err != nil {
+		return nil, fmt.Errorf("error decoding shloks: %w", err)
+	}
+	return shloks, nil
 }

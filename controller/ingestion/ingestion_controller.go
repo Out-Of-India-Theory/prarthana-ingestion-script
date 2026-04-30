@@ -183,3 +183,99 @@ func (con *Controller) PoojaSearchIngestion(c *gin.Context) {
 		"data":    nil,
 	})
 }
+
+func (con *Controller) SyncPrarthanas(c *gin.Context) {
+	ctx := c.Request.Context()
+	var request entity.IngestionRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  http.StatusBadRequest,
+			"message": "Invalid request payload",
+		})
+		return
+	}
+	if err := con.service.SyncService().SyncPrarthanas(ctx, request.StartID, request.EndID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Error processing request: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  http.StatusOK,
+		"message": "Successful",
+		"data":    nil,
+	})
+}
+
+func (con *Controller) SyncStotras(c *gin.Context) {
+	ctx := c.Request.Context()
+	var request entity.IngestionRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  http.StatusBadRequest,
+			"message": "Invalid request payload",
+		})
+		return
+	}
+	if err := con.service.SyncService().SyncStotras(ctx, request.StartID, request.EndID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Error processing request: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  http.StatusOK,
+		"message": "Successful",
+		"data":    nil,
+	})
+}
+
+func (con *Controller) SyncShloks(c *gin.Context) {
+	ctx := c.Request.Context()
+	var request entity.IngestionRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  http.StatusBadRequest,
+			"message": "Invalid request payload",
+		})
+		return
+	}
+	if err := con.service.SyncService().SyncShloks(ctx, request.StartID, request.EndID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Error processing request: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  http.StatusOK,
+		"message": "Successful",
+		"data":    nil,
+	})
+}
+
+func (con *Controller) SyncPrarthanaToSheet(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  http.StatusBadRequest,
+			"message": "missing prarthana id",
+		})
+		return
+	}
+	if err := con.service.ZohoSyncService().SyncPrarthanaToSheet(ctx, id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  http.StatusInternalServerError,
+			"message": "Error processing request: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  http.StatusOK,
+		"message": "Successful",
+		"data":    nil,
+	})
+}

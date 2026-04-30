@@ -13,6 +13,11 @@
     "Timeout": "20s",
     "Database": "prarthana_service_stage"
   },
+  "ProdMongoConfig": {
+    "URI": "config_uri",
+    "Timeout": "20s",
+    "Database": "prarthana_service_prod"
+  },
   "ZohoConfig": {
     "ClientId": "XXXX",
     "ClientSecret": "XXXXX",
