@@ -20,4 +20,8 @@ type MongoRepository interface {
 	PullPrarthanaDocs(ctx context.Context) []entity.PrarthanaSearchDoc
 	ListPooja(ctx context.Context) []entity.PoojaMongoDocument
 	GetDeityById(ctx context.Context, id string) (*entity.DeityDocument, error)
+	FindPrarthanaById(ctx context.Context, id string) (*entity.Prarthana, error)
+	GetPrarthanasByTmpIdRange(ctx context.Context, startID, endID int) ([]entity.Prarthana, error)
+	GetStotrasByIntIdRange(ctx context.Context, startID, endID int) ([]entity.Stotra, error)
+	GetShloksByIntIdRange(ctx context.Context, startID, endID int) ([]entity.Shlok, error)
 }

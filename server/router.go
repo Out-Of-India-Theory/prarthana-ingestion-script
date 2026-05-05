@@ -29,6 +29,10 @@ func registerRoutes(ctx context.Context, app *app.App, service facade.Service, c
 		prarthanaIngestionV1.GET("/prarthanas-search", prarthanaIngestionController.PrarthanaSearchIngestion)
 		prarthanaIngestionV1.GET("/pooja-search", prarthanaIngestionController.PoojaSearchIngestion)
 		prarthanaIngestionV1.POST("/shlokas-translation", am.ZohoAuthMiddleware(), prarthanaIngestionController.ShlokTranslationGeneration)
+		prarthanaIngestionV1.POST("/sync/prarthanas", am.ZohoAuthMiddleware(), prarthanaIngestionController.SyncPrarthanas)
+		prarthanaIngestionV1.POST("/sync/stotras", am.ZohoAuthMiddleware(), prarthanaIngestionController.SyncStotras)
+		prarthanaIngestionV1.POST("/sync/shloks", am.ZohoAuthMiddleware(), prarthanaIngestionController.SyncShloks)
+		prarthanaIngestionV1.POST("/zoho-sync/prarthana/:id", prarthanaIngestionController.SyncPrarthanaToSheet)
 	}
 	app.Engine.LoadHTMLGlob("ingestion/*.html")
 	app.Engine.GET("/ingestion/prarthana/prarthana.html", func(c *gin.Context) {
