@@ -39,11 +39,11 @@
     "PoojaIndex": "staging-pooja"
   },
   "AIPlatformClientConfig": {
-    "Address": "xxxx",
+    "Address": "https://api-internal.stage.dharmayana.in",
     "Timeout": "20s"
   },
-  "PromptConfig": {
+  "Prompts": {
     "TranslationPrompt": 14,
-    "TranliterationPrompt": 15
+    "TransliterationPrompt": 15
   }
 }
