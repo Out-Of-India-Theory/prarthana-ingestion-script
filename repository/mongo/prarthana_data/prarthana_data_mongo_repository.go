@@ -222,6 +222,7 @@ func (r *PrarthanaDataMongoRepository) InsertManyPrarthanas(ctx context.Context,
 			if err != nil {
 				return fmt.Errorf("error unmarshalling prarthana data to bson.M: %w", err)
 			}
+			delete(updateDoc, "created_at")
 			updateResult, err := r.prarthanaCollection.UpdateOne(
 				ctx,
 				bson.M{"TmpId": prarthana.TmpId},
